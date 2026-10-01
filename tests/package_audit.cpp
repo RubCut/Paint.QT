@@ -331,15 +331,25 @@ int main(int argc, char** argv)
             // agree. The build failed with "Unable to find sdk org.kde.Sdk
             // version 6.7" because the manifest and the workflow named different
             // things; this compares the two rather than trusting either.
+            const QString version = valueOf(text, QStringLiteral("runtime-version:"));
+            check(!version.isEmpty(),
+                  QStringLiteral("the manifest pins a runtime version (%1)").arg(version));
             const QString workflow =
                 readAll(root + QStringLiteral("/.github/workflows/build.yml"));
-            if (!workflow.isEmpty() && !runtime.isEmpty()) {
-                check(workflow.contains(QLatin1String("org.gnome.Platform//"))
-                          || workflow.contains(runtime + QLatin1String("//")),
-                      QStringLiteral("CI installs the runtime the manifest names (%1)")
-                          .arg(runtime));
-                check(workflow.contains(sdk + QLatin1String("//")),
-                      QStringLiteral("CI installs the sdk the manifest names (%1)").arg(sdk));
+            if (!workflow.isEmpty() && !runtime.isEmpty() && !version.isEmpty()) {
+                // The workflow installs these by name, and the build fails with
+                // "Nothing matches org.kde.Sdk in remote flathub" when the two
+                // files disagree, so they are compared rather than assumed.
+                const QString rt = runtime + QLatin1String("//") + version;
+                const QString sk = sdk + QLatin1String("//") + version;
+                check(workflow.contains(rt),
+                      QStringLiteral("CI installs the runtime the manifest names (%1)").arg(rt));
+                check(workflow.contains(sk),
+                      QStringLiteral("CI installs the sdk the manifest names (%1)").arg(sk));
+                // The flatpakref tells software centres which runtime to fetch, so
+                // it has to name the same one or the install fails at the user.
+                check(workflow.contains(QStringLiteral("/x86_64/") + version),
+                      QStringLiteral("the flatpakref names runtime version %1").arg(version));
             }
             // `base: app` is an invalid application id: an app base name needs
             // at least two periods. With runtime and sdk given, base is derived

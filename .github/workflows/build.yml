@@ -240,14 +240,46 @@ jobs:
       # same metadata validates and composes with a current appstreamcli. The SDK
       # pairs a flatpak-builder with the matching appstreamcli, which is why
       # Flathub recommends it for building submissions.
+      # Flathub retires runtime versions, and a manifest naming a retired one
+      # fails deep inside the build with "Unable to find sdk org.kde.Sdk version
+      # 6.7", which says nothing about what to do next. This asks Flathub what it
+      # actually publishes and names the alternatives, before anything is built.
+      - name: Check that the runtime still exists
+        run: |
+          set -euo pipefail
+          manifest=packaging/flatpak/io.github.paintqt.Paint.QT.yaml
+          runtime=$(sed -n "s/^runtime: *//p" "${manifest}" | head -1 | tr -d "'")
+          version=$(sed -n "s/^runtime-version: *//p" "${manifest}" | head -1 | tr -d "'")
+          # The remote has to exist before it can be asked, and this step runs
+          # before the install one. --if-not-exists makes the repeat harmless.
+          flatpak remote-add --user --if-not-exists flathub \
+            https://dl.flathub.org/repo/flathub.flatpakrepo
+          published=$(flatpak remote-ls --user flathub --arch=x86_64 \
+            --columns=application,branch 2>/dev/null || true)
+          # The match has to be on the pair. Searching the branch column on its own
+          # finds a 6.7 belonging to some other application, so a retired
+          # org.kde.Platform 6.7 looks available and the build fails later anyway.
+          if ! awk -F'\t' -v r="${runtime}" -v v="${version}" \
+                '$1 == r && $2 == v { found = 1 } END { exit !found }' <<< "${published}"; then
+            echo "error: Flathub no longer publishes ${runtime} version ${version}." >&2
+            echo "versions it does publish for ${runtime}:" >&2
+            awk -F'\t' -v r="${runtime}" '$1 == r { print "  " $2 }' <<< "${published}" \
+              | sort -V | tail -8 >&2
+            exit 1
+          fi
+          echo "${runtime} ${version} is available"
+
       - name: Install the builder SDK
         run: |
           sudo apt-get update
           sudo apt-get install -y flatpak desktop-file-utils appstream
           flatpak remote-add --user --if-not-exists flathub \
             https://dl.flathub.org/repo/flathub.flatpakrepo
+          # org.flatpak.Builder is published on the stable branch; asking for a
+          # numbered branch made flatpak report "Nothing matches
+          # org.flatpak.Builder in remote flathub" even though it is there.
           flatpak install --user -y flathub \
-            org.gnome.Platform//master org.gnome.Sdk//master org.flatpak.Builder//stable
+            org.kde.Platform//6.11 org.kde.Sdk//6.11 org.flatpak.Builder//stable
 
       # Run the AppStream validator before the build: compose runs it too, but
       # only after the whole application has compiled, so a metadata mistake
@@ -328,8 +360,8 @@ jobs:
           Commit=${commit}
           Timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           [Runtime]
-          Runtime=runtime/org.gnome.Platform/x86_64/master
-          Sdk=org.gnome.Sdk/x86_64/master
+          Runtime=runtime/org.kde.Platform/x86_64/6.11
+          Sdk=org.kde.Sdk/x86_64/6.11
           Commit=${commit}
           [Application]
           Name=io.github.paintqt.Paint.QT

@@ -30,17 +30,23 @@ manifest="${here}/${app_id}.yaml"
 # The runtime is read from the manifest rather than repeated here. It used to say
 # org.kde.Platform//6.7 in both files, and when Flathub retired 6.7 the two drifted
 # into disagreeing about which runtime the build wanted.
-runtime="$(sed -n 's/^runtime: *//p' "${manifest}" | head -1)"
-sdk="$(sed -n 's/^sdk: *//p' "${manifest}" | head -1)"
+runtime="$(sed -n 's/^runtime: *//p' "${manifest}" | head -1 | tr -d "'\"")"
+runtime_version="$(sed -n 's/^runtime-version: *//p' "${manifest}" | head -1 | tr -d "'\"")"
+sdk="$(sed -n 's/^sdk: *//p' "${manifest}" | head -1 | tr -d "'\"")"
 if [ -z "${runtime}" ] || [ -z "${sdk}" ]; then
     echo "error: could not read runtime and sdk from ${manifest}" >&2
     exit 1
 fi
+# A manifest may name a rolling runtime with no version line at all.
+runtime_ref="${runtime}"
+if [ -n "${runtime_version}" ]; then
+    runtime_ref="${runtime}//${runtime_version}"
+fi
 
-echo "==> adding ${runtime} if it is missing"
+echo "==> adding ${runtime_ref} if it is missing"
 flatpak remote-add --if-not-exists flathub \
     https://dl.flathub.org/repo/flathub.flatpakrepo > /dev/null 2>&1 || true
-flatpak install --if-not-exists -y flathub "${runtime}//master" "${sdk}//master"
+flatpak install --if-not-exists -y flathub "${runtime_ref}" "${sdk}//${runtime_version:-master}"
 
 # flatpak-builder resolves a relative `sources.path` against the directory it is
 # run from, not against the manifest. The manifest is run from the repository

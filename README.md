@@ -163,7 +163,7 @@ packaging/flatpak/build-flatpak.sh --verify
 ```
 
 The manifest is `packaging/flatpak/io.github.paintqt.Paint.QT.yaml` and uses
-`org.kde.Platform//6.7`. It requests no privileges beyond the defaults plus the picture,
+`org.kde.Platform//6.11`. It requests no privileges beyond the defaults plus the picture,
 document and download directories, so the file dialog opens through the portal.
 
 CI builds this with Flathub's own `org.flatpak.Builder` rather than the distribution's,

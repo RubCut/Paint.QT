@@ -1,11 +1,11 @@
 id: io.github.paintqt.Paint.QT
-# org.gnome.Platform rather than org.kde.Platform. It is a rolling runtime with no
-# version number, so the manifest cannot go stale: the KDE runtime is published per
-# version and 6.7 no longer exists on Flathub, which is what broke the build with
-# "Unable to find sdk org.kde.Sdk version 6.7". Neither runtime implies a desktop,
-# so this does not tie the editor to GNOME.
-runtime: org.gnome.Platform
-sdk: org.gnome.Sdk
+# 6.11 is the current KDE runtime on Flathub; 6.7 was retired and the build
+# failed with "Unable to find sdk org.kde.Sdk version 6.7". Every runtime family
+# is versioned and retired eventually, so the Flatpak job checks that this one
+# still exists before it builds and names the alternatives if it does not.
+runtime: org.kde.Platform
+runtime-version: '6.11'
+sdk: org.kde.Sdk
 # No `base:`. It is derived from the runtime above; setting it to `app` is an
 # invalid application id, since an app base name must contain at least two
 # periods.
