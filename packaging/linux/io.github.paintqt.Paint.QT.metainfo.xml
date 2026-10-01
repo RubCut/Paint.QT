@@ -9,7 +9,7 @@
   <launchable type="desktop-id">paint-qt.desktop</launchable>
 
   <name>Paint.QT</name>
-  <summary>A raster image editor, a faithful port of Paint.NET to Qt 6</summary>
+  <summary>A raster image editor for Linux desktops, with the tool set and layout of Paint.NET</summary>
 
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
@@ -17,7 +17,7 @@
   <description>
     <p>
       Paint.QT is a raster image editor for photos, drawings and graphics work. It
-      follows Paint.NET closely: the same tools, the same palette layout, the same
+      is modelled on Paint.NET: the same tools, the same palette layout, the same
       .pdn file format, and the same history where one stroke is one undo step.
     </p>
     <p>Among its tools:</p>
@@ -32,7 +32,7 @@
       <li>Layers with opacity, locking, merging and flattening</li>
       <li>A full undo history where every stroke is a separate step</li>
       <li>The clipboard wired to the system clipboard, so images move between applications</li>
-      <li>Reading and writing .pdn, the format Paint.NET uses, so files open in either program</li>
+      <li>Reading and writing .pdn, so documents move between this editor and Paint.NET</li>
       <li>A light theme that follows the system, and a dark one</li>
     </ul>
   </description>
@@ -56,7 +56,7 @@
   <screenshots>
     <screenshot type="default">
       <image>https://raw.githubusercontent.com/RubCut/Paint.QT/bca52acd6da1ff730b40c34c7716c28c405083aa/packaging/linux/screenshots/01-window.png</image>
-      <caption>The window as it opens, with the palettes in Paint.NET's corners</caption>
+      <caption>The window as it opens, with the palettes floating over it</caption>
     </screenshot>
     <screenshot>
       <image>https://raw.githubusercontent.com/RubCut/Paint.QT/bca52acd6da1ff730b40c34c7716c28c405083aa/packaging/linux/screenshots/02-drawing.png</image>

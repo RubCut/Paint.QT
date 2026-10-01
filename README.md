@@ -1,10 +1,10 @@
 # Paint.QT
 
-Paint.NET recreated on Qt 6.
+A raster image editor for Linux desktops, written in C++20 on Qt 6.
 
-A raster image editor written in C++20 on Qt 6. It follows [Paint.NET][pdn]: the same
-tools, the same palette layout, the same `.pdn` file format, and the same history where
-one stroke is one undo step.
+The tool set and the palette layout are those people know from [Paint.NET][pdn], and so
+are two further things: it reads and writes the `.pdn` format, and its history treats one
+stroke as one undo step. Nothing here comes from Paint.NET's code.
 
 ![Paint.QT](packaging/icons/paint-qt-128.png)
 
@@ -196,9 +196,10 @@ The PKGBUILD builds from the release tarball. To package an unreleased commit, u
 
 ## The logo
 
-The mark is the Paint.NET logo's composition: a frame with a brush laid across it on the
-diagonal. What is inside the frame is not a photograph but a window this program would
-really show, in the KDE Breeze idiom, with a swash of paint on its canvas.
+The mark is original artwork: a frame with a brush laid across it on the diagonal, a
+composition Paint.NET is also known for. What is inside the frame is not a photograph but
+a window this program would really show, in the KDE Breeze idiom, with a swash of paint on
+its canvas.
 
 It exists twice, deliberately:
 
@@ -226,7 +227,8 @@ packaging/       everything that produces an installable package
 
 GPL-3.0-or-later. See [LICENSE](LICENSE).
 
-Paint.NET is a registered trademark of its owner. This is an independent reimplementation and
-no affiliation or endorsement is implied.
+Paint.NET is a registered trademark of its owner. Paint.QT is an independent work: it
+contains no Paint.NET code and uses its name only to say which tool set and file format it
+works with. No affiliation or endorsement is implied.
 
 [pdn]: https://www.getpaint.net/
