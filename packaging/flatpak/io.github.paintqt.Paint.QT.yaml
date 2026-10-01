@@ -2,7 +2,9 @@ id: io.github.paintqt.Paint.QT
 runtime: org.kde.Platform
 runtime-version: '6.7'
 sdk: org.kde.Sdk
-base: app
+# No `base:`. It is derived from the runtime above; setting it to `app` is an
+# invalid application id, since an app base name must contain at least two
+# periods.
 
 command: paint-qt
 

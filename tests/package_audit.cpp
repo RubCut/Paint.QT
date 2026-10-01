@@ -250,6 +250,11 @@ int main(int argc, char** argv)
                   QStringLiteral("the manifest id matches the desktop entry"));
             check(text.contains(QLatin1String("runtime: org.kde.Platform")),
                   QStringLiteral("the manifest builds on the KDE runtime"));
+            // `base: app` is an invalid application id: an app base name needs
+            // at least two periods. With runtime and sdk given, base is derived
+            // and must be absent.
+            check(!text.contains(QLatin1String("base: app")),
+                  QStringLiteral("the manifest has no invalid 'base: app' line"));
             check(text.contains(QLatin1String("command: paint-qt")),
                   QStringLiteral("the manifest launches paint-qt"));
             // A Flatpak that runs outside its sandbox needs a reason. The
