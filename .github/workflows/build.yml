@@ -337,7 +337,10 @@ jobs:
         run: |
           set -euo pipefail
           export GNUPGHOME="$RUNNER_TEMP/gnupg"
-          mkdir -p mode 700 "$GNUPGHOME"
+          # The flag is -m 700, not the words. Written as "mode 700" it created
+          # two directories called mode and 700 and left the keyring world
+          # readable, which gpg refuses to work with.
+          mkdir -p -m 700 "$GNUPGHOME"
 
           # The signing key is one long lived key held in the repository secrets,
           # not a fresh one per run. A key that changes on every release is worse
@@ -352,8 +355,20 @@ jobs:
             echo "signing with the repository key ${keyid}"
           else
             echo "no FLATPAK_GPG_KEY secret, generating a throwaway key"
-            gpg --batch --quick-generate-key \
-              "Paint.QT Flatpak signing key <flatpak@paint-qt.invalid>" ed25519 sign never
+            # The parameter file, not --quick-generate-key: the quick form asks
+            # the agent for a passphrase through a prompt that has no terminal
+            # here, and it fails with "agent_genkey failed: Timeout".
+            cat > "$RUNNER_TEMP/keyparams" <<'PARAMS'
+          %no-protection
+          Key-Type: eddsa
+          Key-Curve: ed25519
+          Key-Usage: sign
+          Name-Real: Paint.QT Flatpak signing key
+          Name-Email: flatpak@paint-qt.invalid
+          Expire-Date: 0
+          %commit
+          PARAMS
+            gpg --batch --gen-key "$RUNNER_TEMP/keyparams"
             keyid=$(gpg --batch --list-secret-keys --with-colons | awk -F: '/^fpr/ {print $10; exit}')
           fi
           # Trust the imported key so ostree will sign with it.
@@ -370,23 +385,25 @@ jobs:
           test -f flatpak-repo/exports/share/bin/paint-qt
 
           # The one-line installer a software centre understands.
-          commit=$(ostree --repo=flatpak-repo refs/heads/stable)
+          #
+          # No Commit= lines. A .flatpakref normally carries the xa.ref value of
+          # each commit, not the ostree commit hash, and putting the hash there
+          # produces a file that looks filled in and installs nothing. Left out,
+          # flatpak resolves the commits from the repository itself.
           cat > flatpak-repo/io.github.RubCut.Paint.QT.flatpakref <<EOF
           [Flatpak Repo]
           Title=Paint.QT
           Url=https://rubcut.github.io/Paint.QT-repo/repo
           Branch=stable
-          Commit=${commit}
-          Timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           [Runtime]
           Runtime=runtime/org.kde.Platform/x86_64/6.11
           Sdk=org.kde.Sdk/x86_64/6.11
-          Commit=${commit}
           [Application]
           Name=io.github.RubCut.Paint.QT
           Branch=stable
           EOF
           cat flatpak-repo/io.github.RubCut.Paint.QT.flatpakref
+          test -s flatpak-repo/io.github.RubCut.Paint.QT.flatpakref
 
       - name: Single-file bundle
         run: |
