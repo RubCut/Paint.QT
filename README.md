@@ -79,17 +79,55 @@ The `icons` suite writes `/tmp/pnq_icons.png`, a contact sheet of all the artwor
 
 ## Installing
 
+### Flatpak
+
+The repository is served over https and is rebuilt on every release:
+
+```sh
+flatpak install --user --noninteractive \
+    https://rubcut.github.io/Paint.QT-repo/repo io.github.paintqt.Paint.QT
+```
+
+GNOME Software and KDE Discover also take a `.flatpakref`, which is a single line naming
+the exact commit:
+
+```
+https://rubcut.github.io/Paint.QT-repo/repo/io.github.paintqt.Paint.QT.flatpakref
+```
+
+If flatpak refuses the signature, the signing key is served next to the repository at
+`repo/paint-qt.gpg`. Import it once:
+
+```sh
+gpg --import https://rubcut.github.io/Paint.QT-repo/repo/paint-qt.gpg
+flatpak remote-add --user --gpg-key=8CB0D5B1BF6E86C0 paintqt \
+    https://rubcut.github.io/Paint.QT-repo/repo
+flatpak install --user paintqt io.github.paintqt.Paint.QT
+```
+
+### Packages
+
+Every release on https://github.com/RubCut/Paint.QT/releases carries a `.deb` for
+Debian and Ubuntu, an `.rpm` for Fedora and openSUSE, a tarball, a macOS bundle and the
+source.
+
+```sh
+sudo apt install ./paint-qt_1.0.0_amd64.deb
+```
+
+### From source
+
 ```sh
 cmake --install build --prefix /usr/local
 ```
 
-That puts the binary in `bin`, the icon into `hicolor`, and a `.desktop` file plus AppStream
-metadata into `share/`.
+That puts the binary in `bin`, the icon into `hicolor`, and a `.desktop` file plus
+AppStream metadata into `share/`.
 
-## Packages
+## Building the packages yourself
 
-All packaging lives in `packaging/` and is driven by the same CMake variables, so a version
-bump updates every format at once.
+All packaging lives in `packaging/` and is driven by the same CMake variables, so a
+version bump updates every format at once.
 
 ### Linux (Debian, RPM, tarball)
 
@@ -117,16 +155,31 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build && cd build && cpack -G DragNDrop
 ```
 
-### Flatpak
+### Flatpak, built locally
 
 ```sh
 packaging/flatpak/build-flatpak.sh --verify
 ```
 
 The manifest is `packaging/flatpak/io.github.paintqt.Paint.QT.yaml` and uses
-`org.kde.Platform//6.7` because the program is a KDE-flavoured Qt
-application. It requests no privileges beyond the defaults plus the picture, document and
-download directories, so the file dialog opens through the portal.
+`org.kde.Platform//6.7`. It requests no privileges beyond the defaults plus the picture,
+document and download directories, so the file dialog opens through the portal.
+
+CI builds this with Flathub's own `org.flatpak.Builder` rather than the distribution's,
+because the Ubuntu package pairs a `flatpak-builder` with an appstreamcli whose compose
+step fails on the component. It then exports a signed ostree repository, writes the
+`.flatpakref`, produces a single-file bundle, and publishes the repository to GitHub Pages.
+
+### AppImage
+
+CI also produces one self-contained file:
+
+```sh
+chmod +x paint-qt.AppImage && ./paint-qt.AppImage
+```
+
+No installation and nothing to sign off, which makes it the quickest way to try the
+editor on a machine that has neither Qt nor Flatpak.
 
 ### Arch (AUR)
 
