@@ -255,6 +255,11 @@ jobs:
       - name: Check that the runtime still exists
         run: |
           set -euo pipefail
+          # flatpak itself is installed here rather than left to the next step:
+          # this one asks the remote a question and the runner has no flatpak
+          # until something installs it.
+          sudo apt-get update
+          sudo apt-get install -y flatpak
           manifest=packaging/flatpak/io.github.paintqt.Paint.QT.yaml
           runtime=$(sed -n "s/^runtime: *//p" "${manifest}" | head -1 | tr -d "'")
           version=$(sed -n "s/^runtime-version: *//p" "${manifest}" | head -1 | tr -d "'")
