@@ -46,6 +46,17 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure
 
+      # The same suite again against a real X server. The offscreen platform is a
+      # separate Qt code path from x11, and the AppImage job failed on exactly
+      # that difference: the Qt that linuxdeploy bundles carries only the X11
+      # plugin, so a green offscreen run said nothing about whether the shipped
+      # application can start. All six suites pass here too, in about nine
+      # seconds, and now both paths are covered on every push.
+      - name: Test against a real X server
+        run: |
+          sudo apt-get install -y xvfb
+          xvfb-run -a ctest --test-dir build --output-on-failure
+
       # cpack writes beside the project, not into the build directory, because
       # CPACK_INSTALL_CMAKE_PROJECTS is set in CMakeLists so the package can be
       # inspected afterwards. Every later step has to look in both places.
@@ -382,8 +393,12 @@ jobs:
           # No --user: build-export takes the repository as its LOCATION argument
           # and the distribution's flatpak has no such option, so the export died
           # with "Unknown option --user" before writing anything.
+          # LOCATION DIRECTORY [BRANCH], three arguments. The application id was
+          # being passed as a fourth and the export stopped with "Too many
+          # arguments": a build directory already carries the metadata
+          # flatpak-builder wrote into it.
           flatpak build-export "${sign_flag}=${keyid}" \
-            flatpak-repo flatpak-build io.github.RubCut.Paint.QT stable
+            flatpak-repo flatpak-build stable
           gpg --armor --export "${keyid}" > flatpak-repo/paint-qt.gpg
 
           test -f flatpak-repo/exports/share/metainfo/io.github.RubCut.Paint.QT.metainfo.xml
@@ -440,16 +455,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          # The branch is generated in full every time, so nothing is cloned: the
+          # previous contents are replaced, not merged into. Cloning first and
+          # then switching to an orphan branch left the step depending on
+          # `git checkout --orphan` succeeding, which it refuses whenever the
+          # working tree is not empty.
           rm -rf pages-repo
-          git clone --depth 1 --branch gh-pages \
-            "https://github.com/${{ github.repository_owner }}/Paint.QT-repo.git" pages-repo \
-            || git init -q pages-repo
+          git init -q -b gh-pages pages-repo
           cd pages-repo
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout --orphan gh-pages 2>/dev/null || true
-          git rm -rq --cached . 2>/dev/null || true
-          rm -rf repo
           cp -r "$GITHUB_WORKSPACE/flatpak-repo" repo
           cat > index.html <<'EOF'
           <!DOCTYPE html>
@@ -461,8 +476,14 @@ jobs:
           <p>Or paste the .flatpakref into a software centre.</p></body></html>
           EOF
           git add -A
-          git commit -m "Update the Flatpak repository" || echo "nothing to commit"
-          git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository_owner }}/Paint.QT-repo.git" HEAD:gh-pages
+          git commit -q -m "Update the Flatpak repository"
+          # Forced, and it has to be: this commit is built from an empty
+          # repository, so it shares no history with the branch already published
+          # and an ordinary push is rejected as a non-fast-forward. Replacing the
+          # branch is the intent, since everything in it is generated.
+          git push --force \
+            "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository_owner }}/Paint.QT-repo.git" \
+            gh-pages
 
       - uses: actions/upload-artifact@v4
         with:
