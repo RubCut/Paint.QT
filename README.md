@@ -1,5 +1,7 @@
 # Paint.QT
 
+Paint.NET recreated on Qt 6.
+
 A raster image editor written in C++20 on Qt 6. It follows [Paint.NET][pdn]: the same
 tools, the same palette layout, the same `.pdn` file format, and the same history where
 one stroke is one undo step.
