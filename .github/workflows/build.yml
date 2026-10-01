@@ -176,7 +176,7 @@ jobs:
           # workspace root. An earlier version did `cd build`, which turned the
           # install step's `build` into `build/build` and it found nothing.
           cmake --install build --prefix /tmp/appimage-root
-          sudo apt-get install -y wget desktop-file-utils
+          sudo apt-get install -y wget desktop-file-utils libfuse2t64
 
           wget -q -O linuxdeploy.AppImage \
             https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
@@ -226,11 +226,11 @@ jobs:
           # The header has to be the runtime ELF with the AppImage magic at
           # offset 8, and the image has to actually answer --version.
           head -c 12 "${OUTPUT}" | xxd | head -1
-          # A runner has no FUSE, and APPIMAGE_EXTRACT_AND_RUN does not help: the
-          # runtime still calls dlopen on libfuse.so.2 and dies with "dlopen():
-          # error loading libfuse.so.2". Unpacking the image with the runtime's own
-          # --appimage-extract needs no FUSE at all, so AppRun is run from the
-          # extracted tree.
+          # The runtime calls dlopen on libfuse.so.2 before it looks at any
+          # argument, so on a runner without libfuse even --appimage-extract dies
+          # with "dlopen(): error loading libfuse.so.2" and no squashfs-root is
+          # produced. libfuse2t64 is installed above for that reason; the image is
+          # still unpacked rather than mounted, because a runner cannot mount.
           rm -rf squashfs-root
           "${OUTPUT}" --appimage-extract
           test -x squashfs-root/AppRun
@@ -290,7 +290,10 @@ jobs:
       - name: Install the builder SDK
         run: |
           sudo apt-get update
-          sudo apt-get install -y flatpak desktop-file-utils appstream
+          # flatpak-builder itself: installing the runtimes is not enough, and
+          # without this the build step dies on "flatpak-builder: command not
+          # found".
+          sudo apt-get install -y flatpak flatpak-builder desktop-file-utils appstream
           flatpak remote-add --user --if-not-exists flathub \
             https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak install --user -y flathub \
