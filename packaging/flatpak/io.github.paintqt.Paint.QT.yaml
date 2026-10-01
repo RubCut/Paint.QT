@@ -1,7 +1,11 @@
 id: io.github.paintqt.Paint.QT
-runtime: org.kde.Platform
-runtime-version: '6.7'
-sdk: org.kde.Sdk
+# org.gnome.Platform rather than org.kde.Platform. It is a rolling runtime with no
+# version number, so the manifest cannot go stale: the KDE runtime is published per
+# version and 6.7 no longer exists on Flathub, which is what broke the build with
+# "Unable to find sdk org.kde.Sdk version 6.7". Neither runtime implies a desktop,
+# so this does not tie the editor to GNOME.
+runtime: org.gnome.Platform
+sdk: org.gnome.Sdk
 # No `base:`. It is derived from the runtime above; setting it to `app` is an
 # invalid application id, since an app base name must contain at least two
 # periods.
@@ -21,13 +25,9 @@ finish-args:
   - --filesystem=xdg-download
 
 build-options:
-  # rofiles-fuse exposes the installed tree under .flatpak-builder/rofiles-.../,
-  # and appstreamcli compose fails there with file-read-error on the component
-  # even though the same tree validates and composes correctly when it is laid
-  # out the classic way. Turning the optimisation off costs some build time and
-  # makes the layout predictable.
-  flatpak-builder-args:
-    - --disable-rofiles-fuse
+  # rofiles-fuse is turned off from the command line rather than here: the
+  # flatpak-builder shipped in org.flatpak.Builder rejects flatpak-builder-args
+  # as an unknown property of BuilderOptions.
   append-path: /usr/lib/sdk/qt6/bin
   prepend-ld-library-path: /usr/lib/sdk/qt6/lib
   env:

@@ -203,13 +203,25 @@ jobs:
           cp "$GITHUB_WORKSPACE/packaging/linux/io.github.paintqt.Paint.QT.metainfo.xml" \
             "${APPDIR}/usr/share/metainfo/"
 
-          # Run inside the image to produce the final squashfs.
-          OUTPUT=paint-qt.AppImage
-          git clone --depth 1 https://github.com/AppImageCrafters/appimage-builder.git /tmp/appimage-builder
-          /tmp/appimage-builder/build.sh "${APPDIR}" "${OUTPUT}"
+          # Pack the tree into a type 2 AppImage. appimage-builder is the usual
+          # route, but it needs a container of its own, and mksquashfs plus the
+          # AppImage magic bytes is all it does.
+          sudo apt-get install -y squashfs-tools
+          # A file manager shows this for the image itself, so the icon has to be
+          # a real PNG at the top of the tree: an SVG would render as a blank.
+          cp "$GITHUB_WORKSPACE/packaging/icons/paint-qt-256.png" "${APPDIR}/.DirIcon"
+
+          OUTPUT="$GITHUB_WORKSPACE/build/paint-qt.AppImage"
+          mksquashfs "${APPDIR}" "${OUTPUT}.squashfs" \
+            -root-owned -noappend -no-progress -quiet
+          # 0x41 0x49 = "AI" at offset 8, which is what makes it an AppImage.
+          printf 'AI\x02\x00' | dd of="${OUTPUT}.squashfs" bs=1 seek=8 conv=notrunc status=none
+          mv "${OUTPUT}.squashfs" "${OUTPUT}"
+          chmod +x "${OUTPUT}"
 
           ls -la "${OUTPUT}"
           test -s "${OUTPUT}"
+          head -c 10 "${OUTPUT}" | xxd | head -1
 
       - uses: actions/upload-artifact@v4
         with:
@@ -235,7 +247,7 @@ jobs:
           flatpak remote-add --user --if-not-exists flathub \
             https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak install --user -y flathub \
-            org.kde.Platform//6.7 org.kde.Sdk//6.7 org.flatpak.Builder//stable
+            org.gnome.Platform//master org.gnome.Sdk//master org.flatpak.Builder//stable
 
       # Run the AppStream validator before the build: compose runs it too, but
       # only after the whole application has compiled, so a metadata mistake
@@ -296,8 +308,8 @@ jobs:
           Commit=${commit}
           Timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           [Runtime]
-          Runtime=runtime/org.kde.Platform/x86_64/6.7
-          Sdk=org.kde.Sdk/x86_64/6.7
+          Runtime=runtime/org.gnome.Platform/x86_64/master
+          Sdk=org.gnome.Sdk/x86_64/master
           Commit=${commit}
           [Application]
           Name=io.github.paintqt.Paint.QT

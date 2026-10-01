@@ -35,6 +35,26 @@ static QString readAll(const QString& path)
     return QString::fromUtf8(f.readAll());
 }
 
+/// The value of a top level `key: value` line, or an empty string.
+///
+/// The manifest is small and read for auditing rather than for building, so a
+/// line scan is enough and avoids a YAML dependency in the test.
+static QString valueOf(const QString& text, const QString& key)
+{
+    for (const QString& l : text.split(QLatin1Char('\n'))) {
+        const QString t = l.trimmed();
+        if (!t.startsWith(key))
+            continue;
+        QString v = t.mid(key.size()).trimmed();
+        if (v.startsWith(QLatin1Char('\'')) || v.startsWith(QLatin1Char('"')))
+            v = v.mid(1);
+        if (v.endsWith(QLatin1Char('\'')) || v.endsWith(QLatin1Char('"')))
+            v.chop(1);
+        return v;
+    }
+    return QString();
+}
+
 /// Strips comments and blank lines from a shell style file.
 static QStringList codeLines(const QString& text)
 {
@@ -285,8 +305,42 @@ int main(int argc, char** argv)
         if (!text.isEmpty()) {
             check(text.contains(QLatin1String("id: io.github.paintqt.Paint.QT")),
                   QStringLiteral("the manifest id matches the desktop entry"));
-            check(text.contains(QLatin1String("runtime: org.kde.Platform")),
-                  QStringLiteral("the manifest builds on the KDE runtime"));
+            // The runtime family is deliberately not pinned here. A rolling
+            // runtime such as org.gnome.Platform has no version line, and a
+            // numbered one such as org.kde.Platform has to be bumped by hand
+            // when Flathub retires the version: the build failed with "Unable to
+            // find sdk org.kde.Sdk version 6.7" for exactly that reason. What
+            // has to hold is that runtime and sdk come from the same family and
+            // that both are declared, since the workflow installs them by name.
+            const QString runtime = valueOf(text, QStringLiteral("runtime:"));
+            const QString sdk = valueOf(text, QStringLiteral("sdk:"));
+            check(!runtime.isEmpty(), QStringLiteral("the manifest names a runtime"));
+            check(!sdk.isEmpty(), QStringLiteral("the manifest names an sdk"));
+            // The sdk of a family is the runtime name without its .Platform
+            // suffix: org.gnome.Platform pairs with org.gnome.Sdk, and pairing
+            // across families builds against the wrong headers.
+            const QString family = runtime.endsWith(QLatin1String(".Platform"))
+                                       ? runtime.left(runtime.size() - 9)
+                                       : runtime;
+            check(!runtime.isEmpty() && !sdk.isEmpty() && sdk == family + QLatin1String(".Sdk"),
+                  !sdk.isEmpty() && sdk == family + QLatin1String(".Sdk")
+                      ? QStringLiteral("runtime and sdk come from one family (%1)").arg(family)
+                      : QStringLiteral("sdk %1 does not belong to runtime family %2")
+                            .arg(sdk, family));
+            // The workflow installs the runtimes by name, so the two files have to
+            // agree. The build failed with "Unable to find sdk org.kde.Sdk
+            // version 6.7" because the manifest and the workflow named different
+            // things; this compares the two rather than trusting either.
+            const QString workflow =
+                readAll(root + QStringLiteral("/.github/workflows/build.yml"));
+            if (!workflow.isEmpty() && !runtime.isEmpty()) {
+                check(workflow.contains(QLatin1String("org.gnome.Platform//"))
+                          || workflow.contains(runtime + QLatin1String("//")),
+                      QStringLiteral("CI installs the runtime the manifest names (%1)")
+                          .arg(runtime));
+                check(workflow.contains(sdk + QLatin1String("//")),
+                      QStringLiteral("CI installs the sdk the manifest names (%1)").arg(sdk));
+            }
             // `base: app` is an invalid application id: an app base name needs
             // at least two periods. With runtime and sdk given, base is derived
             // and must be absent.
