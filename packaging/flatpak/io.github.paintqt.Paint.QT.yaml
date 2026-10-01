@@ -33,12 +33,16 @@ modules:
   - name: paint-qt
     buildsystem: simple
     build-commands:
-      - cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DQT_VERSION=6
+      # The install prefix has to be /app. CMake defaults to /usr/local, which
+      # would put the binary in /app/usr/local/bin and leave flatpak-builder
+      # reporting "Command 'paint-qt' not found" after a build that otherwise
+      # succeeded.
+      - cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DQT_VERSION=6 -DCMAKE_INSTALL_PREFIX=/app
       - cmake --build build
       # The icons come from the SVG, rendered by the same rasteriser the icon
-      # test compares against.
+      # test compares against, so this target is part of the normal build.
       - cmake --build build --target pnq_icons_generated
-      - DESTDIR=/app cmake --install build
+      - cmake --install build
     sources:
       # This manifest lives in packaging/flatpak/, so the repository root is two
       # levels up. With `..` flatpak-builder copies the packaging directory

@@ -194,12 +194,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # fakeroot and binutils are not optional for makepkg: without fakeroot it
-      # refuses to run at all, and without debugedit it refuses to produce the
-      # package. Both were missing, which is why the job failed on a recipe that
-      # is otherwise correct.
+      # fakeroot and elfutils are not optional for makepkg: without fakeroot it
+      # refuses to run at all, and without debugedit - which elfutils provides,
+      # not binutils - it refuses to produce the package.
       - name: Install dependencies
-        run: pacman -Syu --noconfirm --needed cmake ninja qt6-base qt6-svg fakeroot binutils
+        run: pacman -Syu --noconfirm --needed cmake ninja qt6-base qt6-svg fakeroot elfutils
 
       # The PKGBUILD fetches the release tarball, which does not exist before a
       # tag is pushed. Rather than rewriting the recipe with sed, which would
