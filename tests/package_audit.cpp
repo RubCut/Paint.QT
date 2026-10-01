@@ -294,6 +294,21 @@ int main(int argc, char** argv)
                   QStringLiteral("the manifest has no invalid 'base: app' line"));
             check(text.contains(QLatin1String("command: paint-qt")),
                   QStringLiteral("the manifest launches paint-qt"));
+            // The application id rules, checked here because they are cheap and
+            // a violation means the app has to be resubmitted under a new id.
+            const QString id = QStringLiteral("io.github.paintqt.Paint.QT");
+            check(text.contains(QStringLiteral("id: ") + id),
+                  QStringLiteral("the manifest declares the id %1").arg(id));
+            check(id.startsWith(QLatin1String("io.github.")),
+                  QStringLiteral("a code hosted app id must start with io.github."));
+            check(id.count(QLatin1Char('.')) >= 3,
+                  QStringLiteral("a code hosted app id needs at least four components (%1)")
+                      .arg(id));
+            check(!text.contains(QLatin1String("base: app")),
+                  QStringLiteral("no invalid 'base: app' line"));
+            // Building with network access is refused by Flathub.
+            check(!text.contains(QLatin1String("--share=network")),
+                  QStringLiteral("the build does not ask for network access"));
             // A Flatpak that runs outside its sandbox needs a reason. The
             // permission list is short on purpose and should stay that way.
             const QStringList args = codeLines(text);
