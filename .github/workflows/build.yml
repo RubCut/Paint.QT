@@ -231,10 +231,15 @@ jobs:
           # with "dlopen(): error loading libfuse.so.2" and no squashfs-root is
           # produced. libfuse2t64 is installed above for that reason; the image is
           # still unpacked rather than mounted, because a runner cannot mount.
+          # Under a virtual display, not with QT_QPA_PLATFORM=offscreen: the Qt
+          # that linuxdeploy bundles carries only the xcb platform plugin, so an
+          # offscreen run aborts with "Available platform plugins are: xcb".
+          # Running against a real X server is also the path a user takes.
           rm -rf squashfs-root
           "${OUTPUT}" --appimage-extract
           test -x squashfs-root/AppRun
-          ./squashfs-root/AppRun --version
+          sudo apt-get install -y xvfb
+          xvfb-run -a ./squashfs-root/AppRun --version
 
       - uses: actions/upload-artifact@v4
         with:
@@ -247,12 +252,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # Flathub's own builder SDK is used rather than the distribution's
-      # flatpak-builder. The Ubuntu packages ship appstreamcli 1.0.2, whose
-      # compose step fails with file-read-error on the component even though the
-      # same metadata validates and composes with a current appstreamcli. The SDK
-      # pairs a flatpak-builder with the matching appstreamcli, which is why
-      # Flathub recommends it for building submissions.
       # Flathub retires runtime versions, and a manifest naming a retired one
       # fails deep inside the build with "Unable to find sdk org.kde.Sdk version
       # 6.7", which says nothing about what to do next. This asks Flathub what it
@@ -287,7 +286,7 @@ jobs:
           fi
           echo "${runtime} ${version} is available"
 
-      - name: Install the builder SDK
+      - name: Install the runtimes and the builder
         run: |
           sudo apt-get update
           # flatpak-builder itself: installing the runtimes is not enough, and
@@ -313,21 +312,14 @@ jobs:
       # installed for the user, so the build failed with "Unable to find sdk
       # org.kde.Sdk version 6.11" immediately, while the same manifest compiled
       # fine with the distribution's builder.
-      - name: Build and verify
+      - name: Build
         run: |
           set -euo pipefail
+          # No --repo here: the export step below writes the repository, signed,
+          # and exporting twice would leave an unsigned commit in its history.
           flatpak-builder \
-            --user --repo="$PWD/flatpak-repo" --force-clean \
+            --user --force-clean \
             stable packaging/flatpak/io.github.RubCut.Paint.QT.yaml
-
-          # --verify starts the application in the sandbox and waits for it to
-          # exit. The editor itself would never exit on a runner with no display,
-          # so it is verified through --version, which does.
-          flatpak-builder \
-            --verify --print-repo \
-            --command="paint-qt --version" \
-            --env=QT_QPA_PLATFORM=offscreen \
-            "$PWD/flatpak-repo" stable
 
       # Publish the result as a standalone ostree repository: this is what a user
       # installs from, and it needs no Flathub account and no review. A dedicated
@@ -408,6 +400,23 @@ jobs:
           cat flatpak-repo/io.github.RubCut.Paint.QT.flatpakref
           test -s flatpak-repo/io.github.RubCut.Paint.QT.flatpakref
 
+      # The distribution's flatpak-builder has no --verify, and the run failed on
+      # "Option parsing failed: Unknown option --verify". Installing the exported
+      # repository and starting the application from it checks more anyway: the
+      # commit, the metadata and the bundle all have to be right before flatpak
+      # will install anything.
+      #
+      # A virtual display rather than QT_QPA_PLATFORM=offscreen, because the path
+      # a user takes is X11 and that is the one worth exercising.
+      - name: Install and start it
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y xvfb
+          flatpak remote-add --user --if-not-exists paintqt-local \
+            "file://$PWD/flatpak-repo"
+          flatpak install --user -y --no-deps paintqt-local io.github.RubCut.Paint.QT
+          xvfb-run -a flatpak run --user io.github.RubCut.Paint.QT --version
+
       - name: Single-file bundle
         run: |
           flatpak build-bundle --user flatpak-repo paint-qt.flatpak stable
@@ -481,7 +490,11 @@ jobs:
           staging=$(mktemp -d)
           cp -r src tools tests packaging CMakeLists.txt LICENSE README.md "$staging/"
           mkdir -p src
-          mv "$staging" "src/paint-qt-${version}"
+          # Named after the repository, because that is what GitHub's archive
+          # unpacks to and what _srcdir in the PKGBUILD now expects. Staging it
+          # as paint-qt-${version} built a tree the recipe could not find, which
+          # is what the recipe itself got wrong before.
+          mv "$staging" "src/Paint.QT-${version}"
           cp packaging/aur/PKGBUILD .
           sed -i 's|^source=.*|source=()|; s|^sha256sums=.*|sha256sums=()|' PKGBUILD
           grep -E '^(pkgver|source|sha256sums)=' PKGBUILD

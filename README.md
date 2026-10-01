@@ -113,7 +113,13 @@ Debian and Ubuntu, an `.rpm` for Fedora and openSUSE, a tarball, a macOS bundle 
 source.
 
 ```sh
-sudo apt install ./paint-qt_1.0.0_amd64.deb
+sudo apt install ./paint-qt_*_amd64.deb
+```
+
+On Fedora or openSUSE the file is an `.rpm` instead:
+
+```sh
+sudo dnf install ./paint-qt-*.x86_64.rpm
 ```
 
 ### From source
