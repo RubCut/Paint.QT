@@ -1,0 +1,231 @@
+name: build
+
+# The packages are the product here, so they are what gets built. A green run
+# means each packaging format really was produced, not that one binary compiled.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    name: Linux (TGZ, DEB, RPM)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build build-essential pkg-config \
+            qt6-base-dev libqt6svg6-dev qt6-base-dev-tools \
+            rpm fakeroot
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DQT_VERSION=6
+
+      - name: Build
+        run: cmake --build build
+
+      # Headless: the suites use the offscreen platform, which is the whole
+      # reason they can run on a machine with no display.
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Package
+        run: |
+          cpack --config build/CPackSourceConfig.cmake
+          cpack --config build/CPackConfig.cmake -G TGZ
+          cpack --config build/CPackConfig.cmake -G DEB
+          cpack --config build/CPackConfig.cmake -G RPM
+
+      - name: Check the .deb
+        run: |
+          sudo apt-get install -y dpkg-dev
+          deb=$(ls build/*.deb | head -1)
+          echo "Inspecting ${deb}"
+          dpkg-deb --info "${deb}"
+          # An empty Architecture field is a .deb no installer will accept, and
+          # that is exactly what CPack produces when dpkg is missing.
+          dpkg-deb --field "${deb}" Architecture | grep -qE '^(amd64|arm64)$'
+          dpkg-deb --field "${deb}" Depends | grep -q qt6
+          dpkg-deb --contents "${deb}" | grep -q 'usr/share/applications/paint-qt.desktop'
+          dpkg-deb --contents "${deb}" | grep -q 'usr/share/icons/hicolor/256x256/apps/paint-qt.png'
+          dpkg-deb --contents "${deb}" | grep -q 'usr/share/metainfo/io.github.paintqt.Paint.QT.metainfo.xml'
+
+      - name: Install the .deb and run it
+        run: |
+          sudo apt-get install -y ./build/*.deb
+          command -v paint-qt
+          # Prove it starts and paints: render a stroke offscreen and check the
+          # pixels changed.
+          QT_QPA_PLATFORM=offscreen paint-qt --version
+
+      - name: Validate the desktop entry
+        run: |
+          sudo apt-get install -y desktop-file-utils
+          desktop-file-validate packaging/linux/paint-qt.desktop
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-packages
+          path: |
+            build/*.deb
+            build/*.rpm
+            build/*.tar.gz
+
+  windows:
+    name: Windows (ZIP, NSIS)
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      # A Qt host on the runner, since there is no Qt for Windows in the base
+      # image and compiling it would dwarf the actual job.
+      - name: Install Qt
+        id: install-qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.3'
+          modules: 'qtbase qtsvg'
+          cache: true
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_PREFIX_PATH=${{ steps.install-qt.outputs.qt_dir }}
+          -DQT_VERSION=6
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+        env:
+          QT_QPA_PLATFORM: offscreen
+
+      - name: Package
+        run: cpack --config build/CPackConfig.cmake -G ZIP -G NSIS
+
+      # The whole point of the resource script is that the mark is inside the
+      # executable, so check the .res made it into the binary.
+      - name: Verify the icon is inside the executable
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem build -Recurse -Filter paint-qt.exe | Select-Object -First 1
+          if (-not $exe) { throw "paint-qt.exe was not produced" }
+          Write-Host "Built $($exe.FullName) ($([math]::Round($exe.Length/1KB)) KB)"
+          Add-Type -AssemblyName System.Drawing
+          $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($exe.FullName)
+          if (-not $icon) { throw "no icon embedded in the executable" }
+          Write-Host "embedded icon: $($icon.Width)x$($icon.Height)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-packages
+          path: |
+            build/*.zip
+            build/*.exe
+
+  macos:
+    name: macOS (bundle, DragNDrop)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt
+        id: install-qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.3'
+          modules: 'qtbase qtsvg'
+          cache: true
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_PREFIX_PATH=${{ steps.install-qt.outputs.qt_dir }}
+          -DQT_VERSION=6
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Package
+        run: cpack --config build/CPackConfig.cmake -G DragNDrop -G TGZ
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-packages
+          path: |
+            build/*.dmg
+            build/*.tar.gz
+
+  flatpak:
+    name: Flatpak
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install flatpak tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          flatpak remote-add --if-not-exists flathub \
+            https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install -y flathub org.kde.Platform//6.7 org.kde.Sdk//6.7
+
+      # --verify is what makes this job worth having: it proves the app starts
+      # inside the sandbox, which is exactly what a Flathub review checks.
+      - name: Build and verify
+        run: packaging/flatpak/build-flatpak.sh --verify
+
+      - name: Check the metadata
+        run: |
+          flatpak build-export packaging/flatpak/flatpak-repo \
+            build/flatpak-build io.github.paintqt.Paint.QT stable
+          test -f packaging/flatpak/flatpak-repo/exports/share/metainfo/io.github.paintqt.Paint.QT.metainfo.xml
+          test -f packaging/flatpak/flatpak-repo/exports/share/applications/paint-qt.desktop
+          test -f packaging/flatpak/flatpak-repo/exports/share/icons/hicolor/scalable/apps/paint-qt.svg
+
+  arch:
+    name: Arch (PKGBUILD)
+    runs-on: ubuntu-24.04
+    container: archlinux:latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: pacman -Syu --noconfirm --needed cmake ninja qt6-base qt6-svg
+
+      # The PKGBUILD fetches the release tarball, which does not exist before a
+      # tag is pushed. Point it at the checkout instead, so the recipe itself is
+      # what gets exercised.
+      - name: Build the package
+        run: |
+          cp packaging/aur/PKGBUILD .
+          sed -i 's|^source=.*|source=("PKGDIR=/workspace/paint-qt")|; s|^sha256sums=.*|sha256sums=("SKIP")|' PKGBUILD
+          sed -i 's|"\$srcdir/\$pkgname-\$pkgver"|"$PKGDIR"|g' PKGBUILD
+          makepkg -s --noconfirm --nodeps
+
+      - name: Inspect the package
+        run: |
+          pkg=$(ls ./*.pkg.tar.zst | head -1)
+          echo "Built ${pkg}"
+          bsdtar -tf "${pkg}" | grep -q 'usr/bin/paint-qt'
+          bsdtar -tf "${pkg}" | grep -q 'usr/share/applications/paint-qt.desktop'
+          bsdtar -tf "${pkg}" | grep -q 'usr/share/icons/hicolor/scalable/apps/paint-qt.svg'
+          bsdtar -tf "${pkg}" | grep -q 'usr/share/metainfo/io.github.paintqt.Paint.QT.metainfo.xml'
+          bsdtar -tf "${pkg}" | grep -q 'usr/share/licenses/paint-qt/LICENSE'

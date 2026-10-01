@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Paint.QT application mark.
+
+  The composition is the Paint.NET logo: a photo frame with a brush laid across
+  it on the diagonal. What is inside the frame is not a photograph but a window
+  this program would really show, drawn in the KDE Breeze idiom, with a swash of
+  paint on its canvas.
+
+  This file and src/resources/Icons.cpp draw the same mark. They are kept honest
+  by tests/icon_sheet.cpp, which renders both and compares them, so editing one
+  without the other fails the build rather than shipping two different logos.
+
+  Geometry is in a 100x100 user space, matching the coordinate system the
+  procedural painter uses.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="titleBar" x1="0" y1="14.5" x2="0" y2="27.99" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fdfdfe"/>
+      <stop offset="1" stop-color="#e6e9ed"/>
+    </linearGradient>
+    <linearGradient id="paint" x1="20.89" y1="48.54" x2="47.16" y2="48.54" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2f7fd4"/>
+      <stop offset="0.55" stop-color="#7b5ad6"/>
+      <stop offset="1" stop-color="#e0407f"/>
+    </linearGradient>
+    <linearGradient id="wood" x1="28.38" y1="0" x2="86" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#c58a4d"/>
+      <stop offset="0.40" stop-color="#8d5526"/>
+      <stop offset="1" stop-color="#5b3415"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="19.78" y1="0" x2="29.24" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#eef1f4"/>
+      <stop offset="0.45" stop-color="#a9b1b8"/>
+      <stop offset="1" stop-color="#dfe4e8"/>
+    </linearGradient>
+    <linearGradient id="bristlePaint" x1="0" y1="0" x2="20.21" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ef4f66"/>
+      <stop offset="0.45" stop-color="#d02b47"/>
+      <stop offset="1" stop-color="#7d1526"/>
+    </linearGradient>
+    <clipPath id="canvasClip">
+      <rect x="14.5" y="36.155" width="71" height="49.345"/>
+    </clipPath>
+  </defs>
+
+  <!-- Shadow under the frame. -->
+  <rect x="7.5" y="9.4" width="86" height="86" rx="7" ry="7" fill="#000000" opacity="0.165"/>
+
+  <!-- The frame. -->
+  <rect x="7" y="7" width="86" height="86" rx="7" ry="7" fill="#fcfcfd" stroke="#a9afb6" stroke-width="1"/>
+
+  <!-- The window: title bar, window buttons, toolbar, canvas. -->
+  <g>
+    <rect x="14.5" y="14.5" width="71" height="13.49" fill="url(#titleBar)"/>
+    <path d="M14.5 27.99 H85.5" stroke="#c9cfd6" stroke-width="0.4"/>
+
+    <circle cx="75.06" cy="21.245" r="2.13" fill="#fdbc4b"/>
+    <circle cx="78.255" cy="21.245" r="2.13" fill="#3daee9"/>
+    <circle cx="81.45" cy="21.245" r="2.13" fill="#da4453"/>
+
+    <rect x="21.6" y="19.09" width="24.14" height="4.05" rx="2.02" ry="2.02" fill="#9aa0a8"/>
+    <rect x="21.6" y="24.21" width="14.2" height="2.97" rx="1.48" ry="1.48" fill="#c2c7cd"/>
+
+    <rect x="14.5" y="27.99" width="71" height="8.165" fill="#f2f4f7"/>
+    <path d="M14.5 36.155 H85.5" stroke="#d3d8de" stroke-width="0.35"/>
+    <rect x="19.47" y="30.19" width="3.756" height="3.756" rx="1.05" ry="1.05" fill="#8b9199"/>
+    <rect x="27.635" y="30.19" width="3.756" height="3.756" rx="1.05" ry="1.05" fill="#2f7fd4"/>
+    <rect x="35.8" y="30.19" width="3.756" height="3.756" rx="1.05" ry="1.05" fill="#8b9199"/>
+    <rect x="43.965" y="30.19" width="3.756" height="3.756" rx="1.05" ry="1.05" fill="#8b9199"/>
+    <rect x="52.13" y="30.19" width="3.756" height="3.756" rx="1.05" ry="1.05" fill="#8b9199"/>
+
+    <rect x="14.5" y="36.155" width="71" height="49.345" fill="#ffffff"/>
+  </g>
+  <rect x="14.5" y="36.155" width="71" height="49.345" fill="none" stroke="#c9cfd6" stroke-width="0.4"/>
+
+  <!-- The swash of paint, kept short so the brush never runs into it. -->
+  <path d="M20.89 48.54 C 28.42 41.83, 35.95 52.63, 47.16 45.91"
+        fill="none" stroke="url(#paint)" stroke-width="8.39" stroke-linecap="round"/>
+
+  <!-- The brush's soft shadow: the brush itself drawn three times with growing
+       offsets at low opacity, which is what the procedural painter does. -->
+  <g opacity="0.16" fill="#000000">
+    <g transform="translate(17.25 84.85) rotate(-45)">
+      <path d="M0 0 L20.21 -3.612 L20.21 3.612 Z"/>
+      <rect x="19.78" y="-3.756" width="9.46" height="7.512" rx="1.08" ry="1.08"/>
+      <path d="M28.38 -2.752 L82.56 -2.202 Q86 0 82.56 2.202 L28.38 2.752 Z"/>
+    </g>
+    <g transform="translate(16.5 83.9) rotate(-45)">
+      <path d="M0 0 L20.21 -3.612 L20.21 3.612 Z"/>
+      <rect x="19.78" y="-3.756" width="9.46" height="7.512" rx="1.08" ry="1.08"/>
+      <path d="M28.38 -2.752 L82.56 -2.202 Q86 0 82.56 2.202 L28.38 2.752 Z"/>
+    </g>
+    <g transform="translate(15.75 82.95) rotate(-45)">
+      <path d="M0 0 L20.21 -3.612 L20.21 3.612 Z"/>
+      <rect x="19.78" y="-3.756" width="9.46" height="7.512" rx="1.08" ry="1.0"/>
+      <path d="M28.38 -2.752 L82.56 -2.202 Q86 0 82.56 2.202 L28.38 2.752 Z"/>
+    </g>
+  </g>
+
+  <!-- The application's own brush, laid across the frame. -->
+  <g transform="translate(15 82) rotate(-45)">
+    <path d="M0 0 L20.21 -3.612 L20.21 3.612 Z" fill="url(#bristlePaint)"/>
+    <rect x="19.78" y="-3.756" width="9.46" height="7.512" rx="1.08" ry="1.08" fill="url(#metal)"/>
+    <path d="M28.38 -2.752 L82.56 -2.202 Q86 0 82.56 2.202 L28.38 2.752 Z" fill="url(#wood)"/>
+  </g>
+</svg>

@@ -1,0 +1,59 @@
+# Maintainer: Paint.QT contributors <dev@paint-qt.invalid>
+#
+# Builds from the release tarball of the matching tag. Replace the source line
+# with a git+https entry and drop sha256sums to package an unreleased commit:
+#
+#   source=('git+https://github.com/paintqt/paint-qt.git')
+#   sha256sums=('SKIP')
+#
+# and makepkg will take pkgver() from the tag it checks out.
+
+pkgname=paint-qt
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="A raster image editor, a faithful port of Paint.NET to Qt 6"
+arch=('x86_64' 'aarch64')
+url="https://github.com/paintqt/paint-qt"
+license=('GPL3')
+depends=('qt6-base' 'qt6-svg')
+makedepends=('cmake' 'ninja')
+optdepends=('dark-theme: follow the system colour scheme, or pick a theme from the View menu')
+source=("$pkgname-$pkgver.tar.gz::https://github.com/paintqt/paint-qt/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+    cmake -S "$srcdir/$pkgname-$pkgver" -B build \
+        -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+        -DQT_VERSION=6 \
+        -Wno-dev
+    cmake --build build
+}
+
+# Rendering the mark to PNG, ICO and ICNS is part of the normal build, so the
+# package carries the same files the source tree ships.
+check() {
+    cd "$srcdir/$pkgname-$pkgver"
+    QT_QPA_PLATFORM=offscreen ctest --test-dir build --output-on-failure
+}
+
+package() {
+    cd "$srcdir/$pkgname-$pkgver"
+    DESTDIR="$pkgdir" cmake --install build
+
+    # The desktop file names the icon paint-qt; make sure the one the build
+    # produced is the one that got installed, rather than discovering it later.
+    install -Dm644 build/generated/icons/paint-qt-256.png \
+        "$pkgdir/usr/share/icons/hicolor/256x256/apps/paint-qt.png"
+    install -Dm644 build/generated/icons/paint-qt.svg \
+        "$pkgdir/usr/share/icons/hicolor/scalable/apps/paint-qt.svg"
+    install -Dm644 packaging/linux/paint-qt.desktop \
+        "$pkgdir/usr/share/applications/paint-qt.desktop"
+    install -Dm644 packaging/linux/io.github.paintqt.Paint.QT.metainfo.xml \
+        "$pkgdir/usr/share/metainfo/io.github.paintqt.Paint.QT.metainfo.xml"
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+
+    # Strip the debug info Arch does not want in a -release package.
+    find "$pkgdir/usr/bin" -type f -name 'paint-qt' -exec strip {} +
+}

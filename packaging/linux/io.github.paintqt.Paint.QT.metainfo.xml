@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  AppStream metadata. Flathub reads this, GNOME Software and KDE Discover read
+  it, and the AppImage toolchain validates it. Without it a Flathub submission is
+  rejected, so this file is part of the build inputs and is tested.
+-->
+<component type="desktop-application">
+  <id>io.github.paintqt.Paint.QT</id>
+  <launchable type="desktop-id">paint-qt.desktop</launchable>
+
+  <name>Paint.QT</name>
+  <summary>A raster image editor, a faithful port of Paint.NET to Qt 6</summary>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+
+  <description>
+    <p>
+      Paint.QT is a raster image editor for photos, drawings and graphics work. It
+      follows Paint.NET closely: the same tools, the same palette layout, the same
+      .pdn file format, and the same history where one stroke is one undo step.
+    </p>
+    <p>Among its tools:</p>
+    <ul>
+      <li>Pencil, paintbrush, eraser, colour picker and gradient</li>
+      <li>Blur, smudge, dodge and burn, and recolour</li>
+      <li>Shapes: line, rectangle, ellipse, polygon, freeform and curve</li>
+      <li>Text, marquee and lasso selection, move, rotate, flip and scale</li>
+    </ul>
+    <p>It also has:</p>
+    <ul>
+      <li>Layers with opacity, locking, merging and flattening</li>
+      <li>A full undo history where every stroke is a separate step</li>
+      <li>The clipboard wired to the system clipboard, so images move between applications</li>
+      <li>Reading and writing .pdn, the format Paint.NET uses, so files open in either program</li>
+      <li>A light theme that follows the system, and a dark one</li>
+    </ul>
+  </description>
+
+  <categories>
+    <category>Graphics</category>
+    <category>2DGraphics</category>
+    <category>RasterGraphics</category>
+  </categories>
+
+  <keywords>
+    <keyword>paint</keyword>
+    <keyword>image</keyword>
+    <keyword>editor</keyword>
+    <keyword>raster</keyword>
+    <keyword>graphics</keyword>
+    <keyword>draw</keyword>
+    <keyword>photo</keyword>
+  </keywords>
+
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="1.0.0" date="2026-10-01">
+      <description>
+        <p>First release.</p>
+      </description>
+    </release>
+  </releases>
+
+  <url type="homepage">https://github.com/paintqt/paint-qt</url>
+  <url type="bugtracker">https://github.com/paintqt/paint-qt/issues</url>
+  <url type="vcs-browser">https://github.com/paintqt/paint-qt</url>
+
+  <developer id="io.github.paintqt">
+    <name>Paint.QT contributors</name>
+  </developer>
+
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+
+  <requires>
+    <display_length compare="ge">768</display_length>
+  </requires>
+
+  <recommends>
+    <control>pointing</control>
+  </recommends>
+</component>

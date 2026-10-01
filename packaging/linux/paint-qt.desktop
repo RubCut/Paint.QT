@@ -1,0 +1,21 @@
+[Desktop Entry]
+Type=Application
+Version=1.5
+Name=Paint.QT
+GenericName=Raster Image Editor
+GenericName[ru]=Растровый графический редактор
+Comment=A raster image editor, a faithful port of Paint.NET to Qt 6
+Comment[ru]=Растровый графический редактор, перенос Paint.NET на Qt 6
+Exec=paint-qt %f
+Icon=paint-qt
+Terminal=false
+Categories=Graphics;2DGraphics;RasterGraphics;Qt;
+Keywords=paint;image;editor;raster;graphics;draw;photo;
+Keywords[ru]=рисование;изображение;редактор;графика;фото;
+StartupNotify=true
+StartupWMClass=Paint.QT
+# The list matches FileFormats::all() in src/io/FileFormats.cpp, so the file
+# manager offers Paint.QT for exactly what the program can open. A desktop entry
+# claiming a format the binary cannot read is how you get a double click that
+# opens nothing.
+MimeType=image/bmp;image/gif;image/jpeg;image/png;image/tiff;image/webp;image/x-bmp;image/x-icns;image/x-ms-bmp;image/x-portable-anymap;image/x-portable-bitmap;image/x-portable-graymap;image/x-portable-pixmap;image/x-xbitmap;image/x-xpixmap;image/x-pcx;image/x-psd;image/x-qdraw;image/x-tga;image/vnd.microsoft.icon;application/x-paint-qt;
