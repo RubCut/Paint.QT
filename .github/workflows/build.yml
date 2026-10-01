@@ -144,59 +144,207 @@ jobs:
             *.dmg
             *.tar.gz
 
+  appimage:
+    name: AppImage
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build build-essential pkg-config \
+            qt6-base-dev libqt6svg6-dev libgl1-mesa-dev zsync desktop-file-utils \
+            file
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DQT_VERSION=6
+
+      - name: Build
+        run: cmake --build build
+
+      # linuxdeploy bundles the Qt libraries the binary links against, so the
+      # result runs on a machine that has no Qt installed. The Qt plugin that
+      # ships with it is what keeps the icon and the platform theme working.
+      - name: Package as an AppImage
+        run: |
+          set -euo pipefail
+          cd build
+          cmake --install build --prefix /tmp/appimage-root
+          sudo apt-get install -y wget desktop-file-utils
+
+          wget -q -O linuxdeploy.AppImage \
+            https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          chmod +x linuxdeploy.AppImage
+
+          # The application has to be found under a standard prefix.
+          export APPDIR=/tmp/appdir
+          ./linuxdeploy.AppImage --appdir="${APPDIR}" \
+            --executable="$(command -v paint-qt)" \
+            --desktop-file="$GITHUB_WORKSPACE/packaging/linux/paint-qt.desktop" \
+            --icon-file="$GITHUB_WORKSPACE/packaging/icons/paint-qt.svg"
+
+          # Qt's own plugin must be deployed or the image will not find its
+          # platform plugin at run time.
+          wget -q -O linuxdeploy-plugin-qt.AppImage \
+            https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy-plugin-qt.AppImage
+          ./linuxdeploy-plugin-qt.AppImage --appdir="${APPDIR}"
+
+          # Ask the image to run its own AppRun, so the bundled Qt is found.
+          sed -i 's|^Exec=|Exec=AppRun |' "${APPDIR}"/usr/share/applications/*.desktop || true
+
+          mkdir -p "${APPDIR}/usr/share/metainfo"
+          cp "$GITHUB_WORKSPACE/packaging/linux/io.github.paintqt.Paint.QT.metainfo.xml" \
+            "${APPDIR}/usr/share/metainfo/"
+
+          # Run inside the image to produce the final squashfs.
+          OUTPUT=paint-qt.AppImage
+          git clone --depth 1 https://github.com/AppImageCrafters/appimage-builder.git /tmp/appimage-builder
+          /tmp/appimage-builder/build.sh "${APPDIR}" "${OUTPUT}"
+
+          ls -la "${OUTPUT}"
+          test -s "${OUTPUT}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: appimage
+          path: build/paint-qt.AppImage
+
   flatpak:
     name: Flatpak
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
 
-      # --user everywhere: on the runner there is no system bus and no session
-      # bus, so a system wide remote-add fails with "Flatpak system operation
-      # ConfigureRemote not allowed for user".
-      - name: Install flatpak tooling
+      # Flathub's own builder SDK is used rather than the distribution's
+      # flatpak-builder. The Ubuntu packages ship appstreamcli 1.0.2, whose
+      # compose step fails with file-read-error on the component even though the
+      # same metadata validates and composes with a current appstreamcli. The SDK
+      # pairs a flatpak-builder with the matching appstreamcli, which is why
+      # Flathub recommends it for building submissions.
+      - name: Install the builder SDK
         run: |
           sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder
+          sudo apt-get install -y flatpak desktop-file-utils appstream
           flatpak remote-add --user --if-not-exists flathub \
             https://dl.flathub.org/repo/flathub.flatpakrepo
-          flatpak install --user -y flathub org.kde.Platform//6.7 org.kde.Sdk//6.7
+          flatpak install --user -y flathub \
+            org.kde.Platform//6.7 org.kde.Sdk//6.7 org.flatpak.Builder//23.08
 
-      # --verify is what makes this job worth having: it proves the app starts
-      # inside the sandbox, which is exactly what a Flathub review checks.
-      # Run the AppStream validator before the build. compose runs it too, but
-      # only after the whole application has been compiled, so a metadata mistake
-      # costs the entire build cycle to find out.
-      - name: Validate the AppStream metadata
+      # Run the AppStream validator before the build: compose runs it too, but
+      # only after the whole application has compiled, so a metadata mistake
+      # would cost a full build cycle to discover.
+      - name: Validate the metadata
         run: |
-          sudo apt-get install -y appstream
           appstreamcli validate --no-net --explain \
             packaging/linux/io.github.paintqt.Paint.QT.metainfo.xml
-      - name: Validate the desktop entry
-        run: desktop-file-validate packaging/linux/paint-qt.desktop
+          desktop-file-validate packaging/linux/paint-qt.desktop
 
-      - name: Build
+      - name: Build and verify
         run: |
-          flatpak-builder --user --repo=packaging/flatpak/flatpak-repo --force-clean \
+          set -euo pipefail
+          flatpak run --command=flatpak-builder org.flatpak.Builder \
+            --disable-rofiles-fuse \
+            --user --repo="$PWD/flatpak-repo" --force-clean \
             stable packaging/flatpak/io.github.paintqt.Paint.QT.yaml
 
-      # --verify runs the application inside the sandbox and waits for it to
-      # exit. Launching the editor itself would hang forever on a runner with no
-      # display, so it is verified through --version, which exits cleanly and
-      # still proves the binary starts with the runtime's libraries.
-      - name: Verify inside the sandbox
-        run: |
-          flatpak-builder --user --verify --print-repo \
+          # --verify starts the application in the sandbox and waits for it to
+          # exit. The editor itself would never exit on a runner with no display,
+          # so it is verified through --version, which does.
+          flatpak run --command=flatpak-builder org.flatpak.Builder \
+            --verify --print-repo \
             --command="paint-qt --version" \
             --env=QT_QPA_PLATFORM=offscreen \
-            packaging/flatpak/flatpak-repo stable
+            "$PWD/flatpak-repo" stable
 
-      - name: Check the metadata
+      # Publish the result as a standalone ostree repository: this is what a user
+      # installs from, and it needs no Flathub account and no review. A dedicated
+      # GPG key signs the export, because flatpak refuses to install from a
+      # repository whose commits it cannot verify.
+      - name: Export a signed ostree repository
         run: |
-          flatpak build-export --user packaging/flatpak/flatpak-repo \
-            packaging/flatpak/flatpak-build io.github.paintqt.Paint.QT stable
-          test -f packaging/flatpak/flatpak-repo/exports/share/metainfo/io.github.paintqt.Paint.QT.metainfo.xml
-          test -f packaging/flatpak/flatpak-repo/exports/share/applications/paint-qt.desktop
-          test -f packaging/flatpak/flatpak-repo/exports/share/icons/hicolor/scalable/apps/paint-qt.svg
+          set -euo pipefail
+          export GNUPGHOME="$RUNNER_TEMP/gnupg"
+          mkdir -p mode 700 "$GNUPGHOME"
+          gpg --batch --quick-generate-key \
+            "Paint.QT Flatpak signing key <flatpak@paint-qt.invalid>" ed25519 sign never
+          keyid=$(gpg --batch --list-secret-keys --with-colons | awk -F: '/^fpr/ {print $10; exit}')
+          echo "signing with ${keyid}"
+
+          flatpak build-export --user --gpg-hash="${keyid}" \
+            flatpak-repo flatpak-build io.github.paintqt.Paint.QT stable
+          gpg --armor --export "${keyid}" > flatpak-repo/paint-qt.gpg
+
+          test -f flatpak-repo/exports/share/metainfo/io.github.paintqt.Paint.QT.metainfo.xml
+          test -f flatpak-repo/exports/share/applications/paint-qt.desktop
+          test -f flatpak-repo/exports/share/icons/hicolor/scalable/apps/paint-qt.svg
+          test -f flatpak-repo/exports/share/bin/paint-qt
+
+          # The one-line installer a software centre understands.
+          commit=$(ostree --repo=flatpak-repo refs/heads/stable)
+          cat > flatpak-repo/io.github.paintqt.Paint.QT.flatpakref <<EOF
+          [Flatpak Repo]
+          Title=Paint.QT
+          Url=https://rubcut.github.io/Paint.QT-repo/repo
+          Branch=stable
+          Commit=${commit}
+          Timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          [Runtime]
+          Runtime=runtime/org.kde.Platform/x86_64/6.7
+          Sdk=org.kde.Sdk/x86_64/6.7
+          Commit=${commit}
+          [Application]
+          Name=io.github.paintqt.Paint.QT
+          Branch=stable
+          EOF
+          cat flatpak-repo/io.github.paintqt.Paint.QT.flatpakref
+
+      - name: Single-file bundle
+        run: |
+          flatpak build-bundle --user flatpak-repo paint-qt.flatpak stable
+          ls -la paint-qt.flatpak
+
+      - name: Publish to GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          rm -rf pages-repo
+          git clone --depth 1 --branch gh-pages \
+            "https://github.com/${{ github.repository_owner }}/Paint.QT-repo.git" pages-repo \
+            || git init -q pages-repo
+          cd pages-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan gh-pages 2>/dev/null || true
+          git rm -rq --cached . 2>/dev/null || true
+          rm -rf repo
+          cp -r "$GITHUB_WORKSPACE/flatpak-repo" repo
+          cat > index.html <<'EOF'
+          <!DOCTYPE html>
+          <html><head><meta charset="utf-8"><title>Paint.QT Flatpak repository</title></head>
+          <body><h1>Paint.QT</h1>
+          <p>Install from GNOME Software, KDE Discover or a terminal:</p>
+          <pre>flatpak install --user --noninteractive \
+            https://rubcut.github.io/Paint.QT-repo/repo io.github.paintqt.Paint.QT</pre>
+          <p>Or paste the .flatpakref into a software centre.</p></body></html>
+          EOF
+          git add -A
+          git commit -m "Update the Flatpak repository" || echo "nothing to commit"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository_owner }}/Paint.QT-repo.git" HEAD:gh-pages
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flatpak
+          path: |
+            paint-qt.flatpak
+            flatpak-repo/io.github.paintqt.Paint.QT.flatpakref
+            flatpak-repo/paint-qt.gpg
 
   arch:
     name: Arch (PKGBUILD)
@@ -205,13 +353,12 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # makepkg needs three things beyond a compiler: fakeroot to run at all,
-      # and debugedit to produce the package. debugedit is its own package, core/debugedit,
-      # not something elfutils or binutils ships.
+      # base-devel brings the compiler and the headers: the archlinux:latest
+      # container is deliberately minimal, so without it CMake finds no C++
+      # compiler at all. makepkg also needs fakeroot to run and core/debugedit to
+      # produce the package, and makepkg refuses to run as root, which a
+      # container job is.
       - name: Install dependencies
-        # base-devel brings the compiler and the headers. The archlinux:latest
-        # container is deliberately minimal, so without it CMake finds no C++
-        # compiler at all.
         run: >-
           pacman -Syu --noconfirm --needed
           base-devel cmake ninja qt6-base qt6-svg fakeroot core/debugedit
@@ -219,12 +366,12 @@ jobs:
       # The PKGBUILD fetches the release tarball, which does not exist before a
       # tag is pushed. Rather than rewriting the recipe with sed, which would
       # test a PKGBUILD nobody ships, lay the sources out the way makepkg expects
-      # an unpacked tarball and empty the source list. The recipe itself is then
+      # an unpacked tarball and empty only the source list, so the recipe is
       # exercised verbatim.
       - name: Lay out the sources like an unpacked tarball
         run: |
           version=$(sed -n 's/^pkgver=//p' packaging/aur/PKGBUILD)
-          # Stage outside src/ first. Copying src/ into src/paint-qt-$version/
+          # Stage outside src/ first: copying src/ into src/paint-qt-$version/
           # is a copy of a directory into itself, which cp refuses.
           staging=$(mktemp -d)
           cp -r src tools tests packaging CMakeLists.txt LICENSE README.md "$staging/"
@@ -234,9 +381,6 @@ jobs:
           sed -i 's|^source=.*|source=()|; s|^sha256sums=.*|sha256sums=()|' PKGBUILD
           grep -E '^(pkgver|source|sha256sums)=' PKGBUILD
 
-      # makepkg refuses to run as root, and a container job is root. So the
-      # tree is handed to an ordinary user, which is also what makepkg's fakeroot
-      # expects.
       - name: Build the package
         run: |
           useradd --create-home --shell /bin/bash builder
