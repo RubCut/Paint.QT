@@ -280,14 +280,34 @@ jobs:
       # GPG key signs the export, because flatpak refuses to install from a
       # repository whose commits it cannot verify.
       - name: Export a signed ostree repository
+        env:
+          FLATPAK_GPG_KEY: ${{ secrets.FLATPAK_GPG_KEY }}
+          FLATPAK_GPG_FPR: ${{ vars.FLATPAK_GPG_FPR }}
         run: |
           set -euo pipefail
           export GNUPGHOME="$RUNNER_TEMP/gnupg"
           mkdir -p mode 700 "$GNUPGHOME"
-          gpg --batch --quick-generate-key \
-            "Paint.QT Flatpak signing key <flatpak@paint-qt.invalid>" ed25519 sign never
-          keyid=$(gpg --batch --list-secret-keys --with-colons | awk -F: '/^fpr/ {print $10; exit}')
-          echo "signing with ${keyid}"
+
+          # The signing key is one long lived key held in the repository secrets,
+          # not a fresh one per run. A key that changes on every release is worse
+          # than no key: a user who trusted yesterday's key cannot verify today's
+          # build, and the fingerprint printed in the README stops being true.
+          #
+          # When the secret is absent, which is the case for a fork, a throwaway
+          # key is generated so the job still produces a buildable repository.
+          if [ -n "${FLATPAK_GPG_KEY:-}" ]; then
+            printf '%s' "${FLATPAK_GPG_KEY}" | gpg --batch --import
+            keyid="${FLATPAK_GPG_FPR}"
+            echo "signing with the repository key ${keyid}"
+          else
+            echo "no FLATPAK_GPG_KEY secret, generating a throwaway key"
+            gpg --batch --quick-generate-key \
+              "Paint.QT Flatpak signing key <flatpak@paint-qt.invalid>" ed25519 sign never
+            keyid=$(gpg --batch --list-secret-keys --with-colons | awk -F: '/^fpr/ {print $10; exit}')
+          fi
+          # Trust the imported key so ostree will sign with it.
+          gpg --batch --import-ownertrust <<< "${keyid}:6:"
+          gpg --batch --check-trustdb 2>/dev/null || true
 
           flatpak build-export --user --gpg-hash="${keyid}" \
             flatpak-repo flatpak-build io.github.paintqt.Paint.QT stable

@@ -95,12 +95,13 @@ the exact commit:
 https://rubcut.github.io/Paint.QT-repo/repo/io.github.paintqt.Paint.QT.flatpakref
 ```
 
-If flatpak refuses the signature, the signing key is served next to the repository at
-`repo/paint-qt.gpg`. Import it once:
+The repository is signed with one long lived key, so a key trusted for one release still
+verifies the next. Its fingerprint is `15CC07DFA2F7AC0DA659E4B47C5A64187D334294`. If
+flatpak refuses the signature, import the public key, served next to the repository:
 
 ```sh
 gpg --import https://rubcut.github.io/Paint.QT-repo/repo/paint-qt.gpg
-flatpak remote-add --user --gpg-key=8CB0D5B1BF6E86C0 paintqt \
+flatpak remote-add --user --gpg-key=15CC07DFA2F7AC0DA659E4B47C5A64187D334294 paintqt \
     https://rubcut.github.io/Paint.QT-repo/repo
 flatpak install --user paintqt io.github.paintqt.Paint.QT
 ```
