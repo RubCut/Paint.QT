@@ -762,6 +762,22 @@ private:
 
 // -------------------------------------------------------------------- flip
 
+/// Mirrors an image on one axis.
+///
+/// Neither QImage name works across the whole supported Qt range: flipped()
+/// only arrived in 6.9 and mirrored() is deprecated from 6.11 on. Using either
+/// unconditionally means either a compile error on Ubuntu 24.04 (Qt 6.4) or a
+/// deprecation warning on a current distribution, so the version picks one.
+inline QImage mirrorImage(const QImage& img, bool horizontal)
+{
+#if QT_VERSION >= QT_VERSION_CHECK(6, 9, 0)
+    return img.flipped(horizontal ? Qt::Orientation(Qt::Horizontal)
+                                  : Qt::Orientation(Qt::Vertical));
+#else
+    return img.mirrored(horizontal, !horizontal);
+#endif
+}
+
 class FlipTool : public TransformToolBase
 {
 public:
@@ -820,8 +836,7 @@ public:
         if (!beginSession(work, horizontal ? tr("Flip Horizontal") : tr("Flip Vertical")))
             return;
         m_session.restore();
-        const QImage piece = m_session.snapshot().flipped(
-            horizontal ? Qt::Orientations(Qt::Horizontal) : Qt::Orientations(Qt::Vertical));
+        const QImage piece = mirrorImage(m_session.snapshot(), horizontal);
         m_session.blit(piece);
         m_session.commit();
         requestOverlayUpdate();
