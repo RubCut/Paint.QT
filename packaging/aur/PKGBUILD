@@ -1,9 +1,9 @@
-# Maintainer: Paint.QT contributors <dev@paint-qt.invalid>
+# Maintainer: Paint.QT contributors <boldbalabol@gmail.com>
 #
 # Builds from the release tarball of the matching tag. To package an unreleased
 # commit instead, replace the source and checksums with:
 #
-#   source=('git+https://github.com/paintqt/paint-qt.git')
+#   source=('git+https://github.com/RubCut/Paint.QT.git')
 #   sha256sums=('SKIP')
 #
 # and makepkg will take pkgver() from the tag it checks out.
@@ -13,12 +13,12 @@ pkgver=1.0.0
 pkgrel=1
 pkgdesc="A raster image editor, a faithful port of Paint.NET to Qt 6"
 arch=('x86_64' 'aarch64')
-url="https://github.com/paintqt/paint-qt"
+url="https://github.com/RubCut/Paint.QT"
 license=('GPL3')
 depends=('qt6-base' 'qt6-svg')
 makedepends=('cmake' 'ninja')
 optdepends=('dark-theme: follow the system colour scheme, or pick a theme from the View menu')
-source=("$pkgname-$pkgver.tar.gz::https://github.com/paintqt/paint-qt/archive/refs/tags/v$pkgver.tar.gz")
+source=("$pkgname-$pkgver.tar.gz::https://github.com/RubCut/Paint.QT/archive/refs/tags/v$pkgver.tar.gz")
 sha256sums=('SKIP')
 
 # makepkg runs every step with the working directory set to the package
@@ -53,8 +53,8 @@ package() {
     # metadata and the licence are placed by hand.
     install -Dm644 "$_srcdir/packaging/linux/paint-qt.desktop" \
         "$pkgdir/usr/share/applications/paint-qt.desktop"
-    install -Dm644 "$_srcdir/packaging/linux/io.github.paintqt.Paint.QT.metainfo.xml" \
-        "$pkgdir/usr/share/metainfo/io.github.paintqt.Paint.QT.metainfo.xml"
+    install -Dm644 "$_srcdir/packaging/linux/io.github.RubCut.Paint.QT.metainfo.xml" \
+        "$pkgdir/usr/share/metainfo/io.github.RubCut.Paint.QT.metainfo.xml"
     install -Dm644 "$_srcdir/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 
     # Arch does not ship debug info in a release package.

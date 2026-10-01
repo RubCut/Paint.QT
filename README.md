@@ -85,14 +85,14 @@ The repository is served over https and is rebuilt on every release:
 
 ```sh
 flatpak install --user --noninteractive \
-    https://rubcut.github.io/Paint.QT-repo/repo io.github.paintqt.Paint.QT
+    https://rubcut.github.io/Paint.QT-repo/repo io.github.RubCut.Paint.QT
 ```
 
 GNOME Software and KDE Discover also take a `.flatpakref`, which is a single line naming
 the exact commit:
 
 ```
-https://rubcut.github.io/Paint.QT-repo/repo/io.github.paintqt.Paint.QT.flatpakref
+https://rubcut.github.io/Paint.QT-repo/repo/io.github.RubCut.Paint.QT.flatpakref
 ```
 
 The repository is signed with one long lived key, so a key trusted for one release still
@@ -103,7 +103,7 @@ flatpak refuses the signature, import the public key, served next to the reposit
 gpg --import https://rubcut.github.io/Paint.QT-repo/repo/paint-qt.gpg
 flatpak remote-add --user --gpg-key=15CC07DFA2F7AC0DA659E4B47C5A64187D334294 paintqt \
     https://rubcut.github.io/Paint.QT-repo/repo
-flatpak install --user paintqt io.github.paintqt.Paint.QT
+flatpak install --user paintqt io.github.RubCut.Paint.QT
 ```
 
 ### Packages
@@ -162,7 +162,7 @@ cmake --build build && cd build && cpack -G DragNDrop
 packaging/flatpak/build-flatpak.sh --verify
 ```
 
-The manifest is `packaging/flatpak/io.github.paintqt.Paint.QT.yaml` and uses
+The manifest is `packaging/flatpak/io.github.RubCut.Paint.QT.yaml` and uses
 `org.kde.Platform//6.11`. It requests no privileges beyond the defaults plus the picture,
 document and download directories, so the file dialog opens through the portal.
 

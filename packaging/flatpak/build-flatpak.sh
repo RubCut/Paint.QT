@@ -10,7 +10,7 @@ set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 root="$(cd "${here}/../.." && pwd)"
-app_id="io.github.paintqt.Paint.QT"
+app_id="io.github.RubCut.Paint.QT"
 branch="${APP_BRANCH:-stable}"
 
 for tool in flatpak flatpak-builder; do

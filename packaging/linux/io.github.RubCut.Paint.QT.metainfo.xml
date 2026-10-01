@@ -5,7 +5,7 @@
   rejected, so this file is part of the build inputs and is tested.
 -->
 <component type="desktop-application">
-  <id>io.github.paintqt.Paint.QT</id>
+  <id>io.github.RubCut.Paint.QT</id>
   <launchable type="desktop-id">paint-qt.desktop</launchable>
 
   <name>Paint.QT</name>
@@ -13,6 +13,13 @@
 
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
+
+  <!-- Without an icon the component is invisible. appstreamcli compose filters
+       it out, then reports file-read-error for a component it never read, and
+       the Flatpak build fails at the end even though the application compiled
+       and exported. The validator allows only the stock and remote types, and
+       stock is the one for an icon installed in hicolor. -->
+  <icon type="stock">paint-qt.png</icon>
 
   <description>
     <p>
@@ -78,12 +85,12 @@
     </release>
   </releases>
 
-  <url type="homepage">https://github.com/paintqt/paint-qt</url>
-  <url type="bugtracker">https://github.com/paintqt/paint-qt/issues</url>
-  <url type="vcs-browser">https://github.com/paintqt/paint-qt</url>
+  <url type="homepage">https://github.com/RubCut/Paint.QT</url>
+  <url type="bugtracker">https://github.com/RubCut/Paint.QT/issues</url>
+  <url type="vcs-browser">https://github.com/RubCut/Paint.QT</url>
 
-  <developer id="io.github.paintqt">
-    <name>Paint.QT contributors</name>
+  <developer id="io.github.rubcut">
+    <name>RubCut</name>
   </developer>
 
   <supports>

@@ -152,7 +152,7 @@ int main(int argc, char** argv)
     // ------------------------------------------------------------- appstream
     {
         const QString path =
-            pkg + QStringLiteral("/linux/io.github.paintqt.Paint.QT.metainfo.xml");
+            pkg + QStringLiteral("/linux/io.github.RubCut.Paint.QT.metainfo.xml");
         const QString text = readAll(path);
         check(!text.isEmpty(),
               QStringLiteral("AppStream metainfo exists, without which Flathub rejects a submission"));
@@ -192,7 +192,7 @@ int main(int argc, char** argv)
             check(!xml.hasError(),
                   QStringLiteral("metainfo is well formed XML (%1)")
                       .arg(xml.hasError() ? xml.errorString() : QStringLiteral("no error")));
-            check(id == QLatin1String("io.github.paintqt.Paint.QT"),
+            check(id == QLatin1String("io.github.RubCut.Paint.QT"),
                   QStringLiteral("metainfo id is the application id (%1)").arg(id));
             check(name == QLatin1String("Paint.QT"),
                   QStringLiteral("metainfo name is Paint.QT (%1)").arg(name));
@@ -236,6 +236,18 @@ int main(int argc, char** argv)
                       ? QStringLiteral("every screenshot is an https URL")
                       : QStringLiteral("screenshots that are not https URLs: %1")
                             .arg(badShots.join(QStringLiteral(", "))));
+            // The metainfo has to name an icon. A component without one is
+            // invisible to appstreamcli compose: it is filtered out, and compose
+            // then reports file-read-error for a component it never read, so the
+            // Flatpak build fails after the application has already compiled.
+            // Reproduced here with the real appstreamcli, both ways round.
+            const bool hasIcon = text.contains(QLatin1String("<icon"));
+            check(hasIcon,
+                  QStringLiteral("the metainfo names an icon, without which compose drops the component"));
+            if (hasIcon)
+                check(text.contains(QLatin1String("<icon type=\"stock\">"))
+                          || text.contains(QLatin1String("<icon type=\"remote\">")),
+                      QStringLiteral("the icon type is stock or remote, the only two the validator allows"));
             // The same control must not appear under both <supports> and
             // <recommends>; appstreamcli calls that a validation error.
             const bool bothRelations = text.contains(QLatin1String("<recommends>"))
@@ -297,13 +309,13 @@ int main(int argc, char** argv)
     {
         // The extension is not cosmetic: flatpak-builder picks its parser from
         // it, so a .json manifest has to be JSON and this one is YAML.
-        const QString path = pkg + QStringLiteral("/flatpak/io.github.paintqt.Paint.QT.yaml");
+        const QString path = pkg + QStringLiteral("/flatpak/io.github.RubCut.Paint.QT.yaml");
         const QString text = readAll(path);
         check(!text.isEmpty(), QStringLiteral("the flatpak manifest exists as YAML"));
-        check(!QFile::exists(pkg + QStringLiteral("/flatpak/io.github.paintqt.Paint.QT.json")),
+        check(!QFile::exists(pkg + QStringLiteral("/flatpak/io.github.RubCut.Paint.QT.json")),
               QStringLiteral("no .json manifest, which flatpak-builder would parse as JSON"));
         if (!text.isEmpty()) {
-            check(text.contains(QLatin1String("id: io.github.paintqt.Paint.QT")),
+            check(text.contains(QLatin1String("id: io.github.RubCut.Paint.QT")),
                   QStringLiteral("the manifest id matches the desktop entry"));
             // The runtime family is deliberately not pinned here. A rolling
             // runtime such as org.gnome.Platform has no version line, and a
@@ -360,7 +372,7 @@ int main(int argc, char** argv)
                   QStringLiteral("the manifest launches paint-qt"));
             // The application id rules, checked here because they are cheap and
             // a violation means the app has to be resubmitted under a new id.
-            const QString id = QStringLiteral("io.github.paintqt.Paint.QT");
+            const QString id = QStringLiteral("io.github.RubCut.Paint.QT");
             check(text.contains(QStringLiteral("id: ") + id),
                   QStringLiteral("the manifest declares the id %1").arg(id));
             check(id.startsWith(QLatin1String("io.github.")),

@@ -70,7 +70,7 @@ jobs:
           dpkg-deb --field "${deb}" Depends | grep -q qt6
           dpkg-deb --contents "${deb}" | grep -q 'usr/share/applications/paint-qt.desktop'
           dpkg-deb --contents "${deb}" | grep -q 'usr/share/icons/hicolor/256x256/apps/paint-qt.png'
-          dpkg-deb --contents "${deb}" | grep -q 'usr/share/metainfo/io.github.paintqt.Paint.QT.metainfo.xml'
+          dpkg-deb --contents "${deb}" | grep -q 'usr/share/metainfo/io.github.RubCut.Paint.QT.metainfo.xml'
 
       - name: Install the .deb and run it
         run: |
@@ -200,7 +200,7 @@ jobs:
           sed -i 's|^Exec=|Exec=AppRun |' "${APPDIR}"/usr/share/applications/*.desktop || true
 
           mkdir -p "${APPDIR}/usr/share/metainfo"
-          cp "$GITHUB_WORKSPACE/packaging/linux/io.github.paintqt.Paint.QT.metainfo.xml" \
+          cp "$GITHUB_WORKSPACE/packaging/linux/io.github.RubCut.Paint.QT.metainfo.xml" \
             "${APPDIR}/usr/share/metainfo/"
 
           # appimagetool, not mksquashfs plus hand written magic bytes. A bare
@@ -226,10 +226,15 @@ jobs:
           # The header has to be the runtime ELF with the AppImage magic at
           # offset 8, and the image has to actually answer --version.
           head -c 12 "${OUTPUT}" | xxd | head -1
-          # A runner has no FUSE, so mounting the image is impossible there. The
-          # runtime's extraction path runs it from a temporary directory instead,
-          # which is what this variable selects.
-          APPIMAGE_EXTRACT_AND_RUN=1 "${OUTPUT}" --version
+          # A runner has no FUSE, and APPIMAGE_EXTRACT_AND_RUN does not help: the
+          # runtime still calls dlopen on libfuse.so.2 and dies with "dlopen():
+          # error loading libfuse.so.2". Unpacking the image with the runtime's own
+          # --appimage-extract needs no FUSE at all, so AppRun is run from the
+          # extracted tree.
+          rm -rf squashfs-root
+          "${OUTPUT}" --appimage-extract
+          test -x squashfs-root/AppRun
+          ./squashfs-root/AppRun --version
 
       - uses: actions/upload-artifact@v4
         with:
@@ -260,7 +265,7 @@ jobs:
           # until something installs it.
           sudo apt-get update
           sudo apt-get install -y flatpak
-          manifest=packaging/flatpak/io.github.paintqt.Paint.QT.yaml
+          manifest=packaging/flatpak/io.github.RubCut.Paint.QT.yaml
           runtime=$(sed -n "s/^runtime: *//p" "${manifest}" | head -1 | tr -d "'")
           version=$(sed -n "s/^runtime-version: *//p" "${manifest}" | head -1 | tr -d "'")
           # The remote has to exist before it can be asked, and this step runs
@@ -288,11 +293,8 @@ jobs:
           sudo apt-get install -y flatpak desktop-file-utils appstream
           flatpak remote-add --user --if-not-exists flathub \
             https://dl.flathub.org/repo/flathub.flatpakrepo
-          # org.flatpak.Builder is published on the stable branch; asking for a
-          # numbered branch made flatpak report "Nothing matches
-          # org.flatpak.Builder in remote flathub" even though it is there.
           flatpak install --user -y flathub \
-            org.kde.Platform//6.11 org.kde.Sdk//6.11 org.flatpak.Builder//stable
+            org.kde.Platform//6.11 org.kde.Sdk//6.11
 
       # Run the AppStream validator before the build: compose runs it too, but
       # only after the whole application has compiled, so a metadata mistake
@@ -300,21 +302,25 @@ jobs:
       - name: Validate the metadata
         run: |
           appstreamcli validate --no-net --explain \
-            packaging/linux/io.github.paintqt.Paint.QT.metainfo.xml
+            packaging/linux/io.github.RubCut.Paint.QT.metainfo.xml
           desktop-file-validate packaging/linux/paint-qt.desktop
 
+      # The distribution's flatpak-builder, not org.flatpak.Builder. The builder
+      # SDK runs flatpak-builder inside a sandbox that does not see the SDK
+      # installed for the user, so the build failed with "Unable to find sdk
+      # org.kde.Sdk version 6.11" immediately, while the same manifest compiled
+      # fine with the distribution's builder.
       - name: Build and verify
         run: |
           set -euo pipefail
-          flatpak run --command=flatpak-builder org.flatpak.Builder \
-            --disable-rofiles-fuse \
+          flatpak-builder \
             --user --repo="$PWD/flatpak-repo" --force-clean \
-            stable packaging/flatpak/io.github.paintqt.Paint.QT.yaml
+            stable packaging/flatpak/io.github.RubCut.Paint.QT.yaml
 
           # --verify starts the application in the sandbox and waits for it to
           # exit. The editor itself would never exit on a runner with no display,
           # so it is verified through --version, which does.
-          flatpak run --command=flatpak-builder org.flatpak.Builder \
+          flatpak-builder \
             --verify --print-repo \
             --command="paint-qt --version" \
             --env=QT_QPA_PLATFORM=offscreen \
@@ -355,17 +361,17 @@ jobs:
           gpg --batch --check-trustdb 2>/dev/null || true
 
           flatpak build-export --user --gpg-hash="${keyid}" \
-            flatpak-repo flatpak-build io.github.paintqt.Paint.QT stable
+            flatpak-repo flatpak-build io.github.RubCut.Paint.QT stable
           gpg --armor --export "${keyid}" > flatpak-repo/paint-qt.gpg
 
-          test -f flatpak-repo/exports/share/metainfo/io.github.paintqt.Paint.QT.metainfo.xml
+          test -f flatpak-repo/exports/share/metainfo/io.github.RubCut.Paint.QT.metainfo.xml
           test -f flatpak-repo/exports/share/applications/paint-qt.desktop
           test -f flatpak-repo/exports/share/icons/hicolor/scalable/apps/paint-qt.svg
           test -f flatpak-repo/exports/share/bin/paint-qt
 
           # The one-line installer a software centre understands.
           commit=$(ostree --repo=flatpak-repo refs/heads/stable)
-          cat > flatpak-repo/io.github.paintqt.Paint.QT.flatpakref <<EOF
+          cat > flatpak-repo/io.github.RubCut.Paint.QT.flatpakref <<EOF
           [Flatpak Repo]
           Title=Paint.QT
           Url=https://rubcut.github.io/Paint.QT-repo/repo
@@ -377,10 +383,10 @@ jobs:
           Sdk=org.kde.Sdk/x86_64/6.11
           Commit=${commit}
           [Application]
-          Name=io.github.paintqt.Paint.QT
+          Name=io.github.RubCut.Paint.QT
           Branch=stable
           EOF
-          cat flatpak-repo/io.github.paintqt.Paint.QT.flatpakref
+          cat flatpak-repo/io.github.RubCut.Paint.QT.flatpakref
 
       - name: Single-file bundle
         run: |
@@ -410,7 +416,7 @@ jobs:
           <body><h1>Paint.QT</h1>
           <p>Install from GNOME Software, KDE Discover or a terminal:</p>
           <pre>flatpak install --user --noninteractive \
-            https://rubcut.github.io/Paint.QT-repo/repo io.github.paintqt.Paint.QT</pre>
+            https://rubcut.github.io/Paint.QT-repo/repo io.github.RubCut.Paint.QT</pre>
           <p>Or paste the .flatpakref into a software centre.</p></body></html>
           EOF
           git add -A
@@ -422,7 +428,7 @@ jobs:
           name: flatpak
           path: |
             paint-qt.flatpak
-            flatpak-repo/io.github.paintqt.Paint.QT.flatpakref
+            flatpak-repo/io.github.RubCut.Paint.QT.flatpakref
             flatpak-repo/paint-qt.gpg
 
   arch:
@@ -475,5 +481,5 @@ jobs:
           bsdtar -tf "${pkg}" | grep -q 'usr/bin/paint-qt'
           bsdtar -tf "${pkg}" | grep -q 'usr/share/applications/paint-qt.desktop'
           bsdtar -tf "${pkg}" | grep -q 'usr/share/icons/hicolor/scalable/apps/paint-qt.svg'
-          bsdtar -tf "${pkg}" | grep -q 'usr/share/metainfo/io.github.paintqt.Paint.QT.metainfo.xml'
+          bsdtar -tf "${pkg}" | grep -q 'usr/share/metainfo/io.github.RubCut.Paint.QT.metainfo.xml'
           bsdtar -tf "${pkg}" | grep -q 'usr/share/licenses/paint-qt/LICENSE'

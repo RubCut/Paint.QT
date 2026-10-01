@@ -2,9 +2,9 @@ cmake_minimum_required(VERSION 3.21)
 project(PaintNetQt VERSION 1.0.0 LANGUAGES CXX)
 
 # One place for the facts every package format needs.
-set(PNQ_APP_ID "io.github.paintqt.Paint.QT")
-set(PNQ_HOMEPAGE "https://github.com/paintqt/paint-qt")
-set(PNQ_ISSUES "https://github.com/paintqt/paint-qt/issues")
+set(PNQ_APP_ID "io.github.RubCut.Paint.QT")
+set(PNQ_HOMEPAGE "https://github.com/RubCut/Paint.QT")
+set(PNQ_ISSUES "https://github.com/RubCut/Paint.QT/issues")
 set(PNQ_LICENSE "GPL-3.0-or-later")
 set(PNQ_SUMMARY "A raster image editor, a faithful port of Paint.NET to Qt 6")
 set(PNQ_DESCRIPTION
@@ -340,7 +340,7 @@ install(TARGETS paint-qt
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/paint-qt.desktop"
   DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications")
 install(FILES
-    "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/io.github.paintqt.Paint.QT.metainfo.xml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/io.github.RubCut.Paint.QT.metainfo.xml"
   DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/metainfo")
 # The screenshots are referenced from the metainfo by URL, not shipped inside the
 # package: Flathub requires a direct link to the image, and appstreamcli rejects
@@ -364,7 +364,7 @@ set(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
 set(CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${PNQ_SUMMARY}")
 set(CPACK_PACKAGE_HOMEPAGE_URL "${PNQ_HOMEPAGE}")
-set(CPACK_PACKAGE_CONTACT "Paint.QT contributors <dev@paint-qt.invalid>")
+set(CPACK_PACKAGE_CONTACT "Paint.QT contributors <boldbalabol@gmail.com>")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "Paint.QT")
 set(CPACK_PACKAGE_EXECUTABLES "paint-qt;Paint.QT")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
