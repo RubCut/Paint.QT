@@ -21,6 +21,13 @@ finish-args:
   - --filesystem=xdg-download
 
 build-options:
+  # rofiles-fuse exposes the installed tree under .flatpak-builder/rofiles-.../,
+  # and appstreamcli compose fails there with file-read-error on the component
+  # even though the same tree validates and composes correctly when it is laid
+  # out the classic way. Turning the optimisation off costs some build time and
+  # makes the layout predictable.
+  flatpak-builder-args:
+    - --disable-rofiles-fuse
   append-path: /usr/lib/sdk/qt6/bin
   prepend-ld-library-path: /usr/lib/sdk/qt6/lib
   env:
