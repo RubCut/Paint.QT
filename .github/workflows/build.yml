@@ -370,7 +370,19 @@ jobs:
           gpg --batch --import-ownertrust <<< "${keyid}:6:"
           gpg --batch --check-trustdb 2>/dev/null || true
 
-          flatpak build-export --user --gpg-hash="${keyid}" \
+          # The signing option was renamed: 1.14 spells it --gpg-hash and 1.18
+          # spells it --gpg-sign, and passing the wrong one stops the export with
+          # "Unknown option". Ask the tool which it has rather than guessing.
+          sign_flag=--gpg-hash
+          if flatpak build-export --help 2>&1 | grep -q -- '--gpg-sign='; then
+            sign_flag=--gpg-sign
+          fi
+          echo "signing with ${sign_flag}"
+
+          # No --user: build-export takes the repository as its LOCATION argument
+          # and the distribution's flatpak has no such option, so the export died
+          # with "Unknown option --user" before writing anything.
+          flatpak build-export "${sign_flag}=${keyid}" \
             flatpak-repo flatpak-build io.github.RubCut.Paint.QT stable
           gpg --armor --export "${keyid}" > flatpak-repo/paint-qt.gpg
 
@@ -419,7 +431,7 @@ jobs:
 
       - name: Single-file bundle
         run: |
-          flatpak build-bundle --user flatpak-repo paint-qt.flatpak stable
+          flatpak build-bundle flatpak-repo paint-qt.flatpak stable
           ls -la paint-qt.flatpak
 
       - name: Publish to GitHub Pages

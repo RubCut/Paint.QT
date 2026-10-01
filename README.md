@@ -81,15 +81,15 @@ The `icons` suite writes `/tmp/pnq_icons.png`, a contact sheet of all the artwor
 
 ### Flatpak
 
-The repository is served over https and is rebuilt on every release:
+The repository is served over https and is rebuilt by CI on every push to `main`:
 
 ```sh
 flatpak install --user --noninteractive \
     https://rubcut.github.io/Paint.QT-repo/repo io.github.RubCut.Paint.QT
 ```
 
-GNOME Software and KDE Discover also take a `.flatpakref`, which is a single line naming
-the exact commit:
+GNOME Software and KDE Discover also take a `.flatpakref`, which is one URL pointing at
+the repository:
 
 ```
 https://rubcut.github.io/Paint.QT-repo/repo/io.github.RubCut.Paint.QT.flatpakref
