@@ -38,8 +38,11 @@ modules:
       - cmake --build build --target pnq_icons_generated
       - DESTDIR=/app cmake --install build
     sources:
+      # This manifest lives in packaging/flatpak/, so the repository root is two
+      # levels up. With `..` flatpak-builder copies the packaging directory
+      # instead of the source tree, and the build fails with no CMakeLists.txt.
       - type: dir
-        path: ..
+        path: ../..
     cleanup:
       - /include
       - /lib/*.a

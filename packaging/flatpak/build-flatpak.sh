@@ -12,7 +12,6 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 root="$(cd "${here}/../.." && pwd)"
 app_id="io.github.paintqt.Paint.QT"
 branch="${APP_BRANCH:-stable}"
-out="${here}/flatpak-repo"
 
 for tool in flatpak flatpak-builder; do
     if ! command -v "${tool}" > /dev/null; then
@@ -31,16 +30,23 @@ flatpak remote-add --if-not-exists flathub \
     https://dl.flathub.org/repo/flathub.flatpakrepo > /dev/null 2>&1 || true
 flatpak install --if-not-exists -y flathub org.kde.Platform//6.7 org.kde.Sdk//6.7
 
+# flatpak-builder resolves a relative `sources.path` against the directory it is
+# run from, not against the manifest. The manifest is run from the repository
+# root so that its `../..` lands on the checkout it names.
+build_dir="${here}/flatpak-build"
+repo_dir="${here}/flatpak-repo"
+
 echo "==> building ${app_id}//${branch}"
-rm -rf "${out}"
-flatpak-builder --repo="${out}" --force-clean "${branch}" "${manifest}"
+rm -rf "${build_dir}" "${repo_dir}"
+cd "${root}"
+flatpak-builder --repo="${repo_dir}" --force-clean "${branch}" "${manifest}"
 
 if [[ "${1:-}" == "--verify" ]]; then
     echo "==> verifying the build"
-    flatpak-builder --verify --print-repo "${out}" "${branch}"
+    flatpak-builder --verify --print-repo "${repo_dir}" "${branch}"
 fi
 
 echo
-echo "Built into ${out}."
+echo "Built into ${repo_dir}."
 echo "Install it with:"
 echo "  flatpak-builder --user --install --force-clean ${branch} ${manifest}"

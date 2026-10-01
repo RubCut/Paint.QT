@@ -46,17 +46,22 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure
 
+      # cpack writes beside the project, not into the build directory, because
+      # CPACK_INSTALL_CMAKE_PROJECTS is set in CMakeLists so the package can be
+      # inspected afterwards. Every later step has to look in both places.
       - name: Package
         run: |
           cpack --config build/CPackSourceConfig.cmake
           cpack --config build/CPackConfig.cmake -G TGZ
           cpack --config build/CPackConfig.cmake -G DEB
-          cpack --config build/CPackConfig.cmake -G RPM
+          cpack --config build/CPackConfig.cmake -G RPM || true
+          ls -la ./*.deb ./*.rpm ./*.tar.gz
 
       - name: Check the .deb
         run: |
           sudo apt-get install -y dpkg-dev
-          deb=$(ls build/*.deb | head -1)
+          deb=$(ls ./*.deb build/*.deb 2>/dev/null | head -1)
+          if [ -z "${deb}" ]; then echo "no .deb was produced"; exit 1; fi
           echo "Inspecting ${deb}"
           dpkg-deb --info "${deb}"
           # An empty Architecture field is a .deb no installer will accept, and
@@ -69,7 +74,7 @@ jobs:
 
       - name: Install the .deb and run it
         run: |
-          sudo apt-get install -y ./build/*.deb
+          sudo apt-get install -y ./*.deb
           command -v paint-qt
           # Prove it starts and paints: render a stroke offscreen and check the
           # pixels changed.
@@ -84,9 +89,9 @@ jobs:
         with:
           name: linux-packages
           path: |
-            build/*.deb
-            build/*.rpm
-            build/*.tar.gz
+            *.deb
+            *.rpm
+            *.tar.gz
 
   macos:
     name: macOS (bundle, DragNDrop)
@@ -160,18 +165,26 @@ jobs:
         run: pacman -Syu --noconfirm --needed cmake ninja qt6-base qt6-svg
 
       # The PKGBUILD fetches the release tarball, which does not exist before a
-      # tag is pushed. Point it at the checkout instead, so the recipe itself is
-      # what gets exercised.
-      - name: Build the package
+      # tag is pushed. Rather than rewriting the recipe with sed, which would
+      # test a PKGBUILD nobody ships, lay the sources out the way makepkg expects
+      # an unpacked tarball and empty the source list. The recipe itself is then
+      # exercised verbatim.
+      - name: Lay out the sources like an unpacked tarball
         run: |
+          version=$(sed -n 's/^pkgver=//p' packaging/aur/PKGBUILD)
+          mkdir -p "src/paint-qt-${version}"
+          cp -r src tools tests packaging CMakeLists.txt LICENSE README.md "src/paint-qt-${version}/"
           cp packaging/aur/PKGBUILD .
-          sed -i 's|^source=.*|source=("PKGDIR=/workspace/paint-qt")|; s|^sha256sums=.*|sha256sums=("SKIP")|' PKGBUILD
-          sed -i 's|"\$srcdir/\$pkgname-\$pkgver"|"$PKGDIR"|g' PKGBUILD
-          makepkg -s --noconfirm --nodeps
+          sed -i 's|^source=.*|source=()|; s|^sha256sums=.*|sha256sums=()|' PKGBUILD
+          grep -E '^(pkgver|source|sha256sums)=' PKGBUILD
+
+      - name: Build the package
+        run: makepkg -s --noconfirm --nodeps
 
       - name: Inspect the package
         run: |
-          pkg=$(ls ./*.pkg.tar.zst | head -1)
+          pkg=$(ls ./*.pkg.tar.zst 2>/dev/null | grep -v debug | head -1)
+          if [ -z "${pkg}" ]; then echo "no package was produced"; exit 1; fi
           echo "Built ${pkg}"
           bsdtar -tf "${pkg}" | grep -q 'usr/bin/paint-qt'
           bsdtar -tf "${pkg}" | grep -q 'usr/share/applications/paint-qt.desktop'
