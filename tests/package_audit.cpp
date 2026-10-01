@@ -256,6 +256,20 @@ int main(int argc, char** argv)
                   QStringLiteral("controls are not declared under both supports and recommends"));
             check(QFile::exists(root + QStringLiteral("/LICENSE")),
                   QStringLiteral("a LICENSE file ships, which the licence claim depends on"));
+            // The licence is installed from an install() rule, and that rule used
+            // CPACK_PACKAGE_NAME before it was defined, so the destination
+            // collapsed to a bare share/doc and every package shipped
+            // /usr/share/doc/LICENSE with no package directory. Both destinations
+            // are named here because a package silently missing them is how that
+            // went unnoticed: Arch expects licenses/<package>, Debian policy
+            // expects doc/<package>/copyright.
+            const QString cmake = readAll(root + QStringLiteral("/CMakeLists.txt"));
+            check(cmake.contains(QLatin1String("/licenses/${PNQ_PACKAGE_NAME}")),
+                  QStringLiteral("the licence is installed to licenses/<package>, where Arch and RPM look"));
+            check(cmake.contains(QLatin1String("RENAME copyright")),
+                  QStringLiteral("the licence is installed as doc/<package>/copyright for Debian"));
+            check(!cmake.contains(QLatin1String("CPACK_GENERATOR MATCHES")),
+                  QStringLiteral("no install rule is guarded on CPACK_GENERATOR, which is empty at configure time"));
             const QString licence = readAll(root + QStringLiteral("/LICENSE"));
             check(licence.contains(QLatin1String("GNU GENERAL PUBLIC LICENSE")),
                   QStringLiteral("the shipped LICENSE is the GPL"));

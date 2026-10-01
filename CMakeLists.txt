@@ -6,10 +6,11 @@ set(PNQ_APP_ID "io.github.RubCut.Paint.QT")
 set(PNQ_HOMEPAGE "https://github.com/RubCut/Paint.QT")
 set(PNQ_ISSUES "https://github.com/RubCut/Paint.QT/issues")
 set(PNQ_LICENSE "GPL-3.0-or-later")
-set(PNQ_SUMMARY "A raster image editor, a faithful port of Paint.NET to Qt 6")
+set(PNQ_SUMMARY "A raster image editor for Linux desktops, with the tool set of Paint.NET")
 set(PNQ_DESCRIPTION
-    "Paint.QT is a raster image editor written in C++20 on Qt 6. It follows Paint.NET: the same\ntools, the same palette layout, the same .pdn file format, and the same one-undo-step-per-stroke\nhistory. The window draws its own light chrome, so it looks the same on every desktop.")
+    "Paint.QT is a raster image editor written in C++20 on Qt 6. The tools and the palette\nlayout are the ones people know from Paint.NET, and so are two further things: it reads and\nwrites the .pdn format, and its history treats one stroke as one undo step. It contains no\nPaint.NET code. The window draws its own light chrome, so it looks the same on every desktop.")
 set(PNQ_MAINTAINER "Paint.QT contributors")
+set(PNQ_PACKAGE_NAME "paint-qt")
 set(PNQ_DEB_DEPENDS "libqt6core6t64, libqt6gui6, libqt6widgets6, libqt6svg6")
 set(PNQ_RPM_DEPENDS "qt6-qtbase, qt6-qtsvg")
 
@@ -346,17 +347,32 @@ install(FILES
 # package: Flathub requires a direct link to the image, and appstreamcli rejects
 # a relative path with "web-url-expected". They stay in the repository because
 # that URL points at them.
-# Debian ships the licence at a fixed path under every copyright policy.
+
+# The licence goes to licenses/<package>, which is where Arch and RPM expect it.
+# It used to go to doc/<package>, but CPACK_PACKAGE_NAME was still undefined at
+# this point in the file, so the destination collapsed to a bare doc and the
+# package shipped /usr/share/doc/LICENSE with no package directory in it. Debian
+# gets its own copy as doc/<package>/copyright, which CPack writes from
+# CPACK_RESOURCE_FILE_LICENSE further down.
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
   install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
-    DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/doc/${CPACK_PACKAGE_NAME}")
+    DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/licenses/${PNQ_PACKAGE_NAME}")
+  # Debian policy wants the licence at doc/<package>/copyright, under a name dpkg
+  # and lintian look for, and CPack has no setting that produces it. The rule
+  # cannot be limited to the DEB generator: install() is expanded when CMake is
+  # configured, and CPACK_GENERATOR is empty until cpack runs, so a guard around
+  # it is always false. The licence therefore ships at both paths, which is
+  # duplication the other formats do not need but neither of them objects to.
+  install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
+    DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/doc/${PNQ_PACKAGE_NAME}"
+    RENAME copyright)
 endif()
 
 # --------------------------------------------------------------------------
 # CPack. One configuration, many formats, all reading the same variables above,
 # so a version bump cannot update the tarball and forget the .deb.
 # --------------------------------------------------------------------------
-set(CPACK_PACKAGE_NAME "paint-qt")
+set(CPACK_PACKAGE_NAME "${PNQ_PACKAGE_NAME}")
 set(CPACK_PACKAGE_VENDOR "Paint.QT contributors")
 set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
 set(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
