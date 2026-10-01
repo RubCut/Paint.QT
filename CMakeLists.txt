@@ -242,30 +242,11 @@ endif()
 # --------------------------------------------------------------------------
 # The application.
 # --------------------------------------------------------------------------
-add_executable(paint-qt WIN32 MACOSX_BUNDLE src/main.cpp)
+add_executable(paint-qt MACOSX_BUNDLE src/main.cpp)
 target_link_libraries(paint-qt PRIVATE pnq_ui Qt6::Concurrent)
 if(Qt6Svg_FOUND)
   target_link_libraries(paint-qt PRIVATE Qt6::Svg)
   target_compile_definitions(paint-qt PRIVATE PNQ_SVG_SUPPORT)
-endif()
-
-# ---- Windows: the icon and version info go into the executable -------------
-if(WIN32 AND PNQ_PACKAGE_ICONS AND PNQ_HAVE_SVG)
-  # windres has to find paint-qt.ico, which lives in the generated directory, so
-  # the resource script is compiled with that directory as an include path.
-  set(PNQ_RC "${CMAKE_CURRENT_SOURCE_DIR}/packaging/windows/paint-qt.rc")
-  enable_language(RC)
-  add_custom_command(
-    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/pnq_version.res"
-    COMMAND windres -I "${PNQ_ICON_DIR}" -I "${CMAKE_CURRENT_SOURCE_DIR}/packaging/windows"
-            -o "${CMAKE_CURRENT_BINARY_DIR}/pnq_version.res" "${PNQ_RC}"
-    DEPENDS pnq_icons_generated "${PNQ_RC}"
-    COMMENT "Compiling the Windows icon into the executable"
-    VERBATIM)
-  target_sources(paint-qt PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/pnq_version.res")
-  set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/pnq_version.res"
-    PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
-  target_link_libraries(paint-qt PRIVATE pnq_icons_generated)
 endif()
 
 # ---- macOS: the bundle gets the .icns as its document icon -----------------
@@ -329,8 +310,8 @@ if(PNQ_BUILD_TESTS AND Qt6Test_FOUND)
     TIMEOUT 120)
 
   # Checks every file the packaging reads: the desktop entry, the AppStream
-  # metainfo, the icon files, the flatpak manifest, the PKGBUILD and the Windows
-  # resource script. A release nobody looked at is the failure this prevents.
+  # metainfo, the icon files, the flatpak manifest and the PKGBUILD. A release
+  # nobody looked at is the failure this prevents.
   add_executable(pnq_packages tests/package_audit.cpp)
   # Qt6::Gui for QImage, which is how the shipped PNGs are read back.
   target_link_libraries(pnq_packages PRIVATE Qt6::Core Qt6::Gui)
@@ -426,17 +407,8 @@ set(CPACK_SOURCE_GENERATOR "TGZ")
 set(CPACK_ARCHIVE_COMPONENT_INSTALL OFF)
 set(CPACK_VERBATIM_VARIABLES ON)
 
-# Windows and macOS packages only make sense when built there.
-if(WIN32)
-  set(CPACK_GENERATOR "ZIP;NSIS")
-  set(CPACK_NSIS_PACKAGE_NAME "Paint.QT")
-  set(CPACK_NSIS_DISPLAY_NAME "Paint.QT")
-  set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
-  set(CPACK_NSIS_MODIFY_PATH OFF)
-  # The icon has to sit next to the .rc for windres, and it is generated.
-  set(CPACK_PACKAGE_EXECUTABLES "paint-qt;Paint.QT")
-  set(CPACK_NSIS_MENU_LINKS "paint-qt;Paint.QT")
-elseif(APPLE)
+# macOS packages only make sense when built there; Linux gets TGZ, DEB and RPM.
+if(APPLE)
   set(CPACK_GENERATOR "DragNDrop;TGZ")
 else()
   # rpmbuild is part of rpm and is not installed everywhere. Listing RPM as a

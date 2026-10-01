@@ -62,7 +62,7 @@ cmake --build build -j"$(nproc)"
 cd build && ctest --output-on-failure
 ```
 
-Five suites:
+Six suites:
 
 | Suite | What it checks |
 | --- | --- |
@@ -71,8 +71,9 @@ Five suites:
 | `drag_paint` | A stroke through real Qt mouse events, then undo, redo and a `.pdn` round trip |
 | `tool_audit` | All 28 tools driven with real mouse events; each one has to change pixels |
 | `icons` | Every tool and command has its own artwork, and the mark exists at every size |
+| `packages` | Every file the packaging reads, checked before a release nobody looked at |
 
-The icon suite writes `/tmp/pnq_icons.png`, a contact sheet of all the artwork.
+The `icons` suite writes `/tmp/pnq_icons.png`, a contact sheet of all the artwork.
 
 ## Installing
 
@@ -90,6 +91,8 @@ bump updates every format at once.
 
 ### Linux (Debian, RPM, tarball)
 
+Paint.QT targets Linux and the BSDs.
+
 ```sh
 cd build
 cpack                      # TGZ, DEB and RPM
@@ -100,28 +103,17 @@ The `.deb` and the `.rpm` carry the icon, the `.desktop` file and the AppStream 
 so the application shows up in a menu, in a file chooser and in the software centre with
 its own artwork.
 
-### Windows
-
-Build in a MinGW or MSVC shell:
-
-```sh
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build
-cd build && cpack -G NSIS
-```
-
-The icon is compiled into the executable by `windres`, so Explorer, the taskbar and the
-Alt+Tab switcher show the mark with nothing else installed. You will get a ZIP and an NSIS
-installer.
+The icon goes into `share/icons/hicolor` at every size, so a panel asks for the 32 px file
+and a file manager's large view asks for the 256 px one, neither scaled from the other.
 
 ### macOS
+
+The same CMake produces a working bundle, with the `.icns` as its icon:
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build && cd build && cpack -G DragNDrop
 ```
-
-The `.icns` becomes the bundle icon.
 
 ### Flatpak
 
@@ -169,7 +161,7 @@ src/core/        document, layers, history, selections, image maths, effects
 src/tools/       the 28 tools and their option panels
 src/ui/          main window, canvas view, palettes, theme, dialogs
 src/resources/   procedural icons and the colour palettes
-tests/           five test suites
+tests/           six test suites
 tools/           build time helpers
 packaging/       everything that produces an installable package
 ```

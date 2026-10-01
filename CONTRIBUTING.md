@@ -77,8 +77,8 @@ pixels, so two ids with no drawing of their own fail it. `tools/make_icons.cpp` 
 renderer; `packaging/aur/PKGBUILD` and the Flatpak manifest are the per-distribution
 recipes.
 
-Never bump `version` in a `.rc`, an `Info.plist` or a PKGBUILD by hand: they read it from
-CMake, and `packages` checks that they do.
+Never bump the version in an `Info.plist` or a PKGBUILD by hand: they read it from CMake, and
+`packages` checks that they do.
 
 ## Pull requests
 

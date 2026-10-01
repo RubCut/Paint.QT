@@ -282,15 +282,29 @@ int main(int argc, char** argv)
         if (!text.isEmpty()) {
             check(text.contains(QLatin1String("pkgname=paint-qt")),
                   QStringLiteral("PKGBUILD names the package paint-qt"));
-            check(text.contains(QLatin1String("cmake --build build")),
+            // The paths are variables, so look for the commands rather than for
+            // one particular spelling of the build directory.
+            check(text.contains(QLatin1String("cmake --build")),
                   QStringLiteral("PKGBUILD builds the project"));
-            check(text.contains(QLatin1String("cmake --install build")),
+            check(text.contains(QLatin1String("cmake --install")),
                   QStringLiteral("PKGBUILD installs the project"));
-            // The install step has to place the icon, the desktop entry and the
-            // metadata by hand, because CPack is not what makepkg runs.
+            // CMake reuses whatever prefix the build tree was configured with, so
+            // the install line has to name /usr itself. Without it every file
+            // lands in /usr/local, which is wrong on Arch.
+            check(text.contains(QLatin1String("--prefix /usr")),
+                  QStringLiteral("PKGBUILD installs into /usr rather than /usr/local"));
+            // The build tree has to be addressed by absolute path: makepkg runs
+            // each step in the package directory, and a relative `build` path
+            // breaks as soon as a step changes directory.
+            check(text.contains(QLatin1String("_builddir=")),
+                  QStringLiteral("PKGBUILD addresses the build tree by absolute path"));
+            check(text.contains(QLatin1String("-B \"$_builddir\"")),
+                  QStringLiteral("PKGBUILD configures into that absolute path"));
+            // The install step has to place the desktop entry, the metadata and
+            // the licence by hand, because CPack is not what makepkg runs.
             for (const QString& need : { QStringLiteral("paint-qt.desktop"),
                                          QStringLiteral(".metainfo.xml"),
-                                         QStringLiteral("paint-qt.svg") })
+                                         QStringLiteral("LICENSE") })
                 check(text.contains(need),
                       QStringLiteral("PKGBUILD installs %1").arg(need));
             check(QFile::exists(pkg + QStringLiteral("/aur/.SRCINFO")),
@@ -309,20 +323,6 @@ int main(int argc, char** argv)
                   QStringLiteral("every source has a checksum (%1 sources, %2 sums)")
                       .arg(sources).arg(sums));
         }
-    }
-
-    // -------------------------------------------------------------- windows
-    {
-        const QString path = pkg + QStringLiteral("/windows/paint-qt.rc");
-        const QString text = readAll(path);
-        check(!text.isEmpty(), QStringLiteral("packaging/windows/paint-qt.rc exists"));
-        check(text.contains(QLatin1String("ICON")),
-              QStringLiteral("the resource script declares an icon, which is how the mark "
-                             "ends up inside the executable"));
-        check(text.contains(QLatin1String("paint-qt.ico")),
-              QStringLiteral("the resource script points at the generated .ico"));
-        check(text.contains(QLatin1String("VERSIONINFO")),
-              QStringLiteral("the resource script carries version info"));
     }
 
     // ------------------------------------------------------- version, once

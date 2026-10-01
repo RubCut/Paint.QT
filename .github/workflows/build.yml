@@ -2,6 +2,9 @@ name: build
 
 # The packages are the product here, so they are what gets built. A green run
 # means each packaging format really was produced, not that one binary compiled.
+#
+# Paint.QT targets Linux and the BSDs. macOS is covered because the same CMake
+# produces a working bundle there for free; Windows is not a target.
 
 on:
   push:
@@ -84,60 +87,6 @@ jobs:
             build/*.deb
             build/*.rpm
             build/*.tar.gz
-
-  windows:
-    name: Windows (ZIP, NSIS)
-    runs-on: windows-2022
-    steps:
-      - uses: actions/checkout@v4
-
-      # A Qt host on the runner, since there is no Qt for Windows in the base
-      # image and compiling it would dwarf the actual job.
-      - name: Install Qt
-        id: install-qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: '6.7.3'
-          modules: 'qtbase qtsvg'
-          cache: true
-
-      - name: Configure
-        run: >
-          cmake -S . -B build -G Ninja
-          -DCMAKE_BUILD_TYPE=Release
-          -DCMAKE_PREFIX_PATH=${{ steps.install-qt.outputs.qt_dir }}
-          -DQT_VERSION=6
-
-      - name: Build
-        run: cmake --build build
-
-      - name: Test
-        run: ctest --test-dir build --output-on-failure
-        env:
-          QT_QPA_PLATFORM: offscreen
-
-      - name: Package
-        run: cpack --config build/CPackConfig.cmake -G ZIP -G NSIS
-
-      # The whole point of the resource script is that the mark is inside the
-      # executable, so check the .res made it into the binary.
-      - name: Verify the icon is inside the executable
-        shell: pwsh
-        run: |
-          $exe = Get-ChildItem build -Recurse -Filter paint-qt.exe | Select-Object -First 1
-          if (-not $exe) { throw "paint-qt.exe was not produced" }
-          Write-Host "Built $($exe.FullName) ($([math]::Round($exe.Length/1KB)) KB)"
-          Add-Type -AssemblyName System.Drawing
-          $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($exe.FullName)
-          if (-not $icon) { throw "no icon embedded in the executable" }
-          Write-Host "embedded icon: $($icon.Width)x$($icon.Height)"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: windows-packages
-          path: |
-            build/*.zip
-            build/*.exe
 
   macos:
     name: macOS (bundle, DragNDrop)

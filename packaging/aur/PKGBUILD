@@ -1,7 +1,7 @@
 # Maintainer: Paint.QT contributors <dev@paint-qt.invalid>
 #
-# Builds from the release tarball of the matching tag. Replace the source line
-# with a git+https entry and drop sha256sums to package an unreleased commit:
+# Builds from the release tarball of the matching tag. To package an unreleased
+# commit instead, replace the source and checksums with:
 #
 #   source=('git+https://github.com/paintqt/paint-qt.git')
 #   sha256sums=('SKIP')
@@ -21,39 +21,42 @@ optdepends=('dark-theme: follow the system colour scheme, or pick a theme from t
 source=("$pkgname-$pkgver.tar.gz::https://github.com/paintqt/paint-qt/archive/refs/tags/v$pkgver.tar.gz")
 sha256sums=('SKIP')
 
+# makepkg runs every step with the working directory set to the package
+# directory, which is where the build tree has to live. The source tree is
+# addressed by absolute path instead, because `cd`-ing into it makes the
+# relative `build` path below point at a directory that does not exist there.
+_srcdir="$(pwd)/src/$pkgname-$pkgver"
+_builddir="$(pwd)/build"
+
 build() {
-    cmake -S "$srcdir/$pkgname-$pkgver" -B build \
+    cmake -S "$_srcdir" -B "$_builddir" \
         -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=/usr \
         -DQT_VERSION=6 \
         -Wno-dev
-    cmake --build build
+    cmake --build "$_builddir"
 }
 
-# Rendering the mark to PNG, ICO and ICNS is part of the normal build, so the
-# package carries the same files the source tree ships.
+# The whole suite runs headless, so it needs no display.
 check() {
-    cd "$srcdir/$pkgname-$pkgver"
-    QT_QPA_PLATFORM=offscreen ctest --test-dir build --output-on-failure
+    QT_QPA_PLATFORM=offscreen ctest --test-dir "$_builddir" --output-on-failure
 }
 
 package() {
-    cd "$srcdir/$pkgname-$pkgver"
-    DESTDIR="$pkgdir" cmake --install build
+    # --prefix here as well as at configure time: without it CMake reuses the
+    # prefix the build tree was configured with, and the files land in
+    # /usr/local, which is wrong on Arch.
+    DESTDIR="$pkgdir" cmake --install "$_builddir" --prefix /usr
 
-    # The desktop file names the icon paint-qt; make sure the one the build
-    # produced is the one that got installed, rather than discovering it later.
-    install -Dm644 build/generated/icons/paint-qt-256.png \
-        "$pkgdir/usr/share/icons/hicolor/256x256/apps/paint-qt.png"
-    install -Dm644 build/generated/icons/paint-qt.svg \
-        "$pkgdir/usr/share/icons/hicolor/scalable/apps/paint-qt.svg"
-    install -Dm644 packaging/linux/paint-qt.desktop \
+    # CPack is not what makepkg runs, so the desktop entry, the AppStream
+    # metadata and the licence are placed by hand.
+    install -Dm644 "$_srcdir/packaging/linux/paint-qt.desktop" \
         "$pkgdir/usr/share/applications/paint-qt.desktop"
-    install -Dm644 packaging/linux/io.github.paintqt.Paint.QT.metainfo.xml \
+    install -Dm644 "$_srcdir/packaging/linux/io.github.paintqt.Paint.QT.metainfo.xml" \
         "$pkgdir/usr/share/metainfo/io.github.paintqt.Paint.QT.metainfo.xml"
-    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    install -Dm644 "$_srcdir/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 
-    # Strip the debug info Arch does not want in a -release package.
-    find "$pkgdir/usr/bin" -type f -name 'paint-qt' -exec strip {} +
+    # Arch does not ship debug info in a release package.
+    strip --strip-unneeded "$pkgdir/usr/bin/paint-qt"
 }

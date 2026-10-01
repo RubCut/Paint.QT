@@ -15,20 +15,28 @@ CMakeUserPresets.json
 *.so
 *.so.*
 *.dylib
-*.dll
-*.exe
-*.pdb
-*.ilk
-*.res
 
-# Packaged output
+# Packaged output. `cpack` writes into the source directory when the project
+# installs with CPACK_INSTALL_CMAKE_PROJECTS set, which is how the .deb can be
+# inspected afterwards.
+*.deb
+*.rpm
 *.AppImage
+*.tar.gz
+*.dmg
+*.zip
 *.flatpak
 *.appdata.xml
 *.metainfo.xml.in
 flatpak-build/
 .flatpak-builder/
 repo/
+# cpack drops its staging tree next to the build directory when CPACK_INSTALL_CMAKE_PROJECTS
+# is set, which it is here so the .deb can be inspected.
+_CPack_Packages/
+pkg/
+src/*.pkg.tar.zst
+*.pkg.tar.zst
 
 # Editors and tools
 .vscode/
