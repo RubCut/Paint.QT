@@ -9,6 +9,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QFileInfo>
 #include <QImage>
 #include <QSet>
 #include <QXmlStreamReader>
@@ -185,6 +186,37 @@ int main(int argc, char** argv)
                   QStringLiteral("launchable names a desktop file (%1)").arg(launchable));
             check(releases >= 1,
                   QStringLiteral("metainfo lists at least one release (%1)").arg(releases));
+
+            // Flathub requires screenshots, and appstreamcli compose refuses a
+            // component without them. The <image> paths are relative to the
+            // metainfo file, so each one has to exist next to it.
+            const QString metaDir = QFileInfo(path).absolutePath();
+            QStringList missingShots;
+            QXmlStreamReader shots;
+            shots.addData(text.toUtf8());
+            QStringList shotPaths;
+            while (!shots.atEnd()) {
+                shots.readNext();
+                if (shots.name().toString() == QLatin1String("image")
+                    && shots.attributes().value(QLatin1String("type"))
+                           == QLatin1String("source")) {
+                    shotPaths << shots.readElementText().trimmed();
+                }
+            }
+            check(!shotPaths.isEmpty(),
+                  QStringLiteral("metainfo lists screenshots, which Flathub requires (%1)")
+                      .arg(shotPaths.size()));
+            for (const QString& rel : std::as_const(shotPaths)) {
+                const QString full = metaDir + QLatin1Char('/') + rel;
+                if (!QFile::exists(full))
+                    missingShots << rel;
+            }
+            check(missingShots.isEmpty(),
+                  missingShots.isEmpty()
+                      ? QStringLiteral("every screenshot the metainfo names is shipped (%1)")
+                            .arg(shotPaths.size())
+                      : QStringLiteral("metainfo names screenshots that are not there: %1")
+                            .arg(missingShots.join(QStringLiteral(", "))));
             check(QFile::exists(root + QStringLiteral("/LICENSE")),
                   QStringLiteral("a LICENSE file ships, which the licence claim depends on"));
             const QString licence = readAll(root + QStringLiteral("/LICENSE"));

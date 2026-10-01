@@ -307,6 +307,11 @@ if(PNQ_BUILD_TESTS AND Qt6Test_FOUND)
   add_test(NAME icons COMMAND pnq_icons)
   set_tests_properties(icons PROPERTIES TIMEOUT 120)
 
+  # Renders the application screenshots the AppStream metainfo references, so
+  # they cannot drift from the interface they show.
+  add_executable(pnq_screenshots tests/screenshots.cpp)
+  target_link_libraries(pnq_screenshots PRIVATE pnq_ui)
+
   # Checks every file the packaging reads: the desktop entry, the AppStream
   # metainfo, the icon files, the flatpak manifest and the PKGBUILD. A release
   # nobody looked at is the failure this prevents.
@@ -337,6 +342,12 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/paint-qt.desktop"
 install(FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/io.github.paintqt.Paint.QT.metainfo.xml"
   DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/metainfo")
+# The <image> paths in the metainfo file are relative to it, so the screenshots
+# have to land in a screenshots/ directory next to it. Flathub requires at least
+# one, and appstreamcli compose refuses a component that has none.
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/screenshots"
+  DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/metainfo"
+  FILES_MATCHING PATTERN "*.png")
 # Debian ships the licence at a fixed path under every copyright policy.
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
   install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
