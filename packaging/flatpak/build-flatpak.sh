@@ -23,7 +23,9 @@ done
 
 # The manifest lives outside the repository root and refers to it with
 # `type: dir`, so it is copied next to the build tree for flatpak-builder.
-manifest="${here}/${app_id}.json"
+# The extension decides the parser: flatpak-builder reads a .json manifest as
+# JSON and a .yaml one as YAML. This manifest is YAML.
+manifest="${here}/${app_id}.yaml"
 
 echo "==> adding the KDE runtime if it is missing"
 flatpak remote-add --if-not-exists flathub \

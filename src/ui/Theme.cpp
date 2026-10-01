@@ -515,7 +515,13 @@ void install(bool dark)
     pal.setColor(QPalette::Base, base);
     pal.setColor(QPalette::AlternateBase, col("@altBase@"));
     pal.setColor(QPalette::ToolTipBase, col("@tooltip@"));
+    // QPalette::Accent arrived in Qt 6.6. Without it the accent colour simply is
+    // not published through the palette, and the QSS below still sets it, so the
+    // theme looks the same; only a widget reading the palette role directly
+    // would miss it on older Qt.
+#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
     pal.setColor(QPalette::Accent, col("@accent@"));
+#endif
     pal.setColor(QPalette::LinkVisited, col("@link@"));
     QApplication::setPalette(pal);
 

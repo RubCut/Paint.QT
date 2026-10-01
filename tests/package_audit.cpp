@@ -238,9 +238,13 @@ int main(int argc, char** argv)
 
     // ------------------------------------------------------------- flatpak
     {
-        const QString path = pkg + QStringLiteral("/flatpak/io.github.paintqt.Paint.QT.json");
+        // The extension is not cosmetic: flatpak-builder picks its parser from
+        // it, so a .json manifest has to be JSON and this one is YAML.
+        const QString path = pkg + QStringLiteral("/flatpak/io.github.paintqt.Paint.QT.yaml");
         const QString text = readAll(path);
-        check(!text.isEmpty(), QStringLiteral("the flatpak manifest exists"));
+        check(!text.isEmpty(), QStringLiteral("the flatpak manifest exists as YAML"));
+        check(!QFile::exists(pkg + QStringLiteral("/flatpak/io.github.paintqt.Paint.QT.json")),
+              QStringLiteral("no .json manifest, which flatpak-builder would parse as JSON"));
         if (!text.isEmpty()) {
             check(text.contains(QLatin1String("id: io.github.paintqt.Paint.QT")),
                   QStringLiteral("the manifest id matches the desktop entry"));

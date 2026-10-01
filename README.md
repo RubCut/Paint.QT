@@ -123,7 +123,8 @@ cmake --build build && cd build && cpack -G DragNDrop
 packaging/flatpak/build-flatpak.sh --verify
 ```
 
-The manifest uses `org.kde.Platform//6.7` because the program is a KDE-flavoured Qt
+The manifest is `packaging/flatpak/io.github.paintqt.Paint.QT.yaml` and uses
+`org.kde.Platform//6.7` because the program is a KDE-flavoured Qt
 application. It requests no privileges beyond the defaults plus the picture, document and
 download directories, so the file dialog opens through the portal.
 

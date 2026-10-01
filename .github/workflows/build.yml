@@ -166,7 +166,7 @@ jobs:
       - name: Build
         run: |
           flatpak-builder --user --repo=packaging/flatpak/flatpak-repo --force-clean \
-            stable packaging/flatpak/io.github.paintqt.Paint.QT.json
+            stable packaging/flatpak/io.github.paintqt.Paint.QT.yaml
 
       # --verify runs the application inside the sandbox and waits for it to
       # exit. Launching the editor itself would hang forever on a runner with no
@@ -215,8 +215,15 @@ jobs:
           sed -i 's|^source=.*|source=()|; s|^sha256sums=.*|sha256sums=()|' PKGBUILD
           grep -E '^(pkgver|source|sha256sums)=' PKGBUILD
 
+      # makepkg refuses to run as root, and a container job is root. So the
+      # tree is handed to an ordinary user, which is also what makepkg's fakeroot
+      # expects.
       - name: Build the package
-        run: makepkg -s --noconfirm --nodeps
+        run: |
+          useradd --create-home --shell /bin/bash builder
+          chown -R builder:builder "$PWD"
+          su builder -c 'cd "'"$PWD"'" && makepkg -s --noconfirm --nodeps'
+          chown -R "$(id -u):$(id -g)" "$PWD" || true
 
       - name: Inspect the package
         run: |
