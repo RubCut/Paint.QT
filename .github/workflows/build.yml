@@ -172,7 +172,9 @@ jobs:
       - name: Package as an AppImage
         run: |
           set -euo pipefail
-          cd build
+          # No `cd` here: every path below is either absolute or relative to the
+          # workspace root. An earlier version did `cd build`, which turned the
+          # install step's `build` into `build/build` and it found nothing.
           cmake --install build --prefix /tmp/appimage-root
           sudo apt-get install -y wget desktop-file-utils
 
@@ -183,7 +185,7 @@ jobs:
           # The application has to be found under a standard prefix.
           export APPDIR=/tmp/appdir
           ./linuxdeploy.AppImage --appdir="${APPDIR}" \
-            --executable="$(command -v paint-qt)" \
+            --executable="$GITHUB_WORKSPACE/build/bin/paint-qt" \
             --desktop-file="$GITHUB_WORKSPACE/packaging/linux/paint-qt.desktop" \
             --icon-file="$GITHUB_WORKSPACE/packaging/icons/paint-qt.svg"
 
@@ -233,7 +235,7 @@ jobs:
           flatpak remote-add --user --if-not-exists flathub \
             https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak install --user -y flathub \
-            org.kde.Platform//6.7 org.kde.Sdk//6.7 org.flatpak.Builder//23.08
+            org.kde.Platform//6.7 org.kde.Sdk//6.7 org.flatpak.Builder//stable
 
       # Run the AppStream validator before the build: compose runs it too, but
       # only after the whole application has compiled, so a metadata mistake
