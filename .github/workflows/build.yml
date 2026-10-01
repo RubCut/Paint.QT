@@ -203,25 +203,33 @@ jobs:
           cp "$GITHUB_WORKSPACE/packaging/linux/io.github.paintqt.Paint.QT.metainfo.xml" \
             "${APPDIR}/usr/share/metainfo/"
 
-          # Pack the tree into a type 2 AppImage. appimage-builder is the usual
-          # route, but it needs a container of its own, and mksquashfs plus the
-          # AppImage magic bytes is all it does.
-          sudo apt-get install -y squashfs-tools
-          # A file manager shows this for the image itself, so the icon has to be
-          # a real PNG at the top of the tree: an SVG would render as a blank.
-          cp "$GITHUB_WORKSPACE/packaging/icons/paint-qt-256.png" "${APPDIR}/.DirIcon"
+          # appimagetool, not mksquashfs plus hand written magic bytes. A bare
+          # squashfs with AI\x02 at offset 8 has the right header and is still not
+          # an AppImage: the runtime refuses it with "Not an AppImage", because a
+          # type 2 image is the AppImageKit runtime ELF with the filesystem
+          # appended, and only appimagetool knows how to lay that out.
+          #
+          # It also insists on the desktop file and the icon sitting at the top of
+          # the AppDir, not only under usr/share, and aborts with "Desktop file not
+          # found" otherwise.
+          wget -q -O appimagetool \
+            https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool
+          cp "$GITHUB_WORKSPACE/packaging/linux/paint-qt.desktop" "${APPDIR}/paint-qt.desktop"
+          cp "$GITHUB_WORKSPACE/packaging/icons/paint-qt-256.png" "${APPDIR}/paint-qt.png"
 
           OUTPUT="$GITHUB_WORKSPACE/build/paint-qt.AppImage"
-          mksquashfs "${APPDIR}" "${OUTPUT}.squashfs" \
-            -root-owned -noappend -no-progress -quiet
-          # 0x41 0x49 = "AI" at offset 8, which is what makes it an AppImage.
-          printf 'AI\x02\x00' | dd of="${OUTPUT}.squashfs" bs=1 seek=8 conv=notrunc status=none
-          mv "${OUTPUT}.squashfs" "${OUTPUT}"
-          chmod +x "${OUTPUT}"
+          ARCH=x86_64 ./appimagetool "${APPDIR}" "${OUTPUT}"
 
           ls -la "${OUTPUT}"
           test -s "${OUTPUT}"
-          head -c 10 "${OUTPUT}" | xxd | head -1
+          # The header has to be the runtime ELF with the AppImage magic at
+          # offset 8, and the image has to actually answer --version.
+          head -c 12 "${OUTPUT}" | xxd | head -1
+          # A runner has no FUSE, so mounting the image is impossible there. The
+          # runtime's extraction path runs it from a temporary directory instead,
+          # which is what this variable selects.
+          APPIMAGE_EXTRACT_AND_RUN=1 "${OUTPUT}" --version
 
       - uses: actions/upload-artifact@v4
         with:
