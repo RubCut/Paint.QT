@@ -1,5 +1,5 @@
 pkgbase = paint-qt
-	pkgdesc = A raster image editor, a faithful port of Paint.NET to Qt 6
+	pkgdesc = A raster image editor for Linux desktops, with the tool set of Paint.NET
 	pkgver = 1.0.0
 	pkgrel = 1
 	url = https://github.com/RubCut/Paint.QT
@@ -12,6 +12,6 @@ pkgbase = paint-qt
 	depends = qt6-svg
 	optdepends = dark-theme: follow the system colour scheme, or pick a theme from the View menu
 	source = paint-qt-1.0.0.tar.gz::https://github.com/RubCut/Paint.QT/archive/refs/tags/v1.0.0.tar.gz
-	sha256sums = SKIP
+	sha256sums = d924d11e215a3cfe8148057923d2d5e856d6f29d6b8737c22fe1912a4b04d593
 
 pkgname = paint-qt

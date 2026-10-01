@@ -433,6 +433,28 @@ int main(int argc, char** argv)
         if (!text.isEmpty()) {
             check(text.contains(QLatin1String("pkgname=paint-qt")),
                   QStringLiteral("PKGBUILD names the package paint-qt"));
+            // The source is GitHub's tag archive, whose directory inside is named
+            // after the repository. It used to be addressed as
+            // src/$pkgname-$pkgver, which is src/paint-qt-1.0.0, and the archive
+            // unpacks to Paint.QT-1.0.0, so the build never started. makepkg is
+            // not what CI runs for this, so nothing else would have said so.
+            check(!text.contains(QLatin1String("_srcdir=\"$(pwd)/src/$pkgname-$pkgver\"")),
+                  QStringLiteral("_srcdir is not named after the package, "
+                                 "GitHub names it after the repository (%1)")
+                      .arg(QStringLiteral("src/Paint.QT-$pkgver")));
+            check(text.contains(QLatin1String("src/Paint.QT-$pkgver")),
+                  QStringLiteral("_srcdir names the directory GitHub actually creates"));
+            // A recipe that skips the checksum is not one anyone can verify.
+            // SKIP is legitimate only for the VCS alternative in the header, and
+            // the count check further down cannot tell the two apart: a line
+            // reading sha256sums=('SKIP') is present but verifies nothing.
+            const QStringList checksumLines =
+                codeLines(text).filter(QLatin1String("sha256sums="));
+            check(!checksumLines.isEmpty() && !checksumLines.first().contains(QLatin1String("'SKIP'")),
+                  checksumLines.isEmpty()
+                      ? QStringLiteral("the recipe declares a checksum")
+                      : QStringLiteral("the recipe verifies its tarball: %1")
+                            .arg(checksumLines.first()));
             // The paths are variables, so look for the commands rather than for
             // one particular spelling of the build directory.
             check(text.contains(QLatin1String("cmake --build")),

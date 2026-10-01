@@ -4,28 +4,35 @@
 # commit instead, replace the source and checksums with:
 #
 #   source=('git+https://github.com/RubCut/Paint.QT.git')
-#   sha256sums=('SKIP')
+#   sha256sums=('SKIP')   # makepkg takes the revision from the checkout
 #
 # and makepkg will take pkgver() from the tag it checks out.
 
 pkgname=paint-qt
 pkgver=1.0.0
 pkgrel=1
-pkgdesc="A raster image editor, a faithful port of Paint.NET to Qt 6"
+pkgdesc="A raster image editor for Linux desktops, with the tool set of Paint.NET"
 arch=('x86_64' 'aarch64')
 url="https://github.com/RubCut/Paint.QT"
 license=('GPL3')
 depends=('qt6-base' 'qt6-svg')
 makedepends=('cmake' 'ninja')
 optdepends=('dark-theme: follow the system colour scheme, or pick a theme from the View menu')
+# GitHub's tag archive. The first field renames the download; the second is where
+# it comes from. Its checksum is of that archive and has to be replaced on every
+# release, which is what `updpkgsums` does.
 source=("$pkgname-$pkgver.tar.gz::https://github.com/RubCut/Paint.QT/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('SKIP')
+sha256sums=('d924d11e215a3cfe8148057923d2d5e856d6f29d6b8737c22fe1912a4b04d593')
 
 # makepkg runs every step with the working directory set to the package
 # directory, which is where the build tree has to live. The source tree is
 # addressed by absolute path instead, because `cd`-ing into it makes the
 # relative `build` path below point at a directory that does not exist there.
-_srcdir="$(pwd)/src/$pkgname-$pkgver"
+# GitHub names the directory inside the archive after the repository, not after
+# the package: the archive of tag v1.0.0 unpacks to Paint.QT-1.0.0. Using
+# $pkgname-$pkgver here pointed at a directory that does not exist, so the build
+# never started.
+_srcdir="$(pwd)/src/Paint.QT-$pkgver"
 _builddir="$(pwd)/build"
 
 build() {
