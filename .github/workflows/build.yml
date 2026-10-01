@@ -22,7 +22,7 @@ jobs:
     name: Linux (TGZ, DEB, RPM)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install dependencies
         run: |
@@ -97,45 +97,58 @@ jobs:
     name: macOS (bundle, DragNDrop)
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      # aqtversion is pinned: the runner's Python 3.14 breaks the newest
-      # aqtinstall with "not found while parsing XML of package information",
-      # which fails the job before the build even starts.
+      # Qt comes from Homebrew rather than from aqtinstall. aqtinstall is a
+      # Python tool and the runner's Python keeps moving, where the current one
+      # makes it fail with "not found while parsing XML of package information"
+      # before the build even starts. Homebrew's Qt is a normal dependency the
+      # runner can actually satisfy.
       - name: Install Qt
-        id: install-qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: '6.7.3'
-          modules: 'qtbase qtsvg'
-          aqtversion: '3.1.29'
-          cache: true
+        id: qt
+        run: |
+          brew install qt
+          echo "prefix=$(brew --prefix qt)" >> "$GITHUB_OUTPUT"
+          echo "$(brew --prefix qt)/bin" >> "$GITHUB_PATH"
 
       - name: Configure
         run: >
           cmake -S . -B build -G Ninja
           -DCMAKE_BUILD_TYPE=Release
-          -DCMAKE_PREFIX_PATH=${{ steps.install-qt.outputs.qt_dir }}
+          -DCMAKE_PREFIX_PATH=${{ steps.qt.outputs.prefix }}
           -DQT_VERSION=6
 
       - name: Build
         run: cmake --build build
 
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+        env:
+          QT_QPA_PLATFORM: offscreen
+
       - name: Package
         run: cpack --config build/CPackConfig.cmake -G DragNDrop -G TGZ
+
+      - name: Check the bundle icon
+        run: |
+          bundle=$(find build -name 'paint-qt.app' -maxdepth 3 | head -1)
+          test -n "${bundle}" || { echo "no bundle produced"; exit 1; }
+          test -f "${bundle}/Contents/Resources/paint-qt.icns" \
+            || { echo "the bundle has no icon"; exit 1; }
+          echo "bundle icon present"
 
       - uses: actions/upload-artifact@v4
         with:
           name: macos-packages
           path: |
-            build/*.dmg
-            build/*.tar.gz
+            *.dmg
+            *.tar.gz
 
   flatpak:
     name: Flatpak
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # --user everywhere: on the runner there is no system bus and no session
       # bus, so a system wide remote-add fails with "Flatpak system operation
@@ -150,12 +163,20 @@ jobs:
 
       # --verify is what makes this job worth having: it proves the app starts
       # inside the sandbox, which is exactly what a Flathub review checks.
-      - name: Build and verify
+      - name: Build
         run: |
-          flatpak build-update --user io.github.paintqt.Paint.QT || true
           flatpak-builder --user --repo=packaging/flatpak/flatpak-repo --force-clean \
             stable packaging/flatpak/io.github.paintqt.Paint.QT.json
+
+      # --verify runs the application inside the sandbox and waits for it to
+      # exit. Launching the editor itself would hang forever on a runner with no
+      # display, so it is verified through --version, which exits cleanly and
+      # still proves the binary starts with the runtime's libraries.
+      - name: Verify inside the sandbox
+        run: |
           flatpak-builder --user --verify --print-repo \
+            --command="paint-qt --version" \
+            --env=QT_QPA_PLATFORM=offscreen \
             packaging/flatpak/flatpak-repo stable
 
       - name: Check the metadata
@@ -171,7 +192,7 @@ jobs:
     runs-on: ubuntu-24.04
     container: archlinux:latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install dependencies
         run: pacman -Syu --noconfirm --needed cmake ninja qt6-base qt6-svg

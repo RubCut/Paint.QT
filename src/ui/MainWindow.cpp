@@ -11,6 +11,8 @@
 #include "effects/Effects.h"
 #include "io/FileFormats.h"
 #include "io/PdnFile.h"
+#include <type_traits>
+
 #include "resources/Icons.h"
 #include "tools/Tool.h"
 #include "ui/AdjustmentsDialog.h"
@@ -69,14 +71,27 @@ namespace pnq {
 
 namespace {
 /// Creates a QAction, connects it and (optionally) adds it to a menu/toolbar.
-QAction* makeAction(QObject* owner, QMenu* menu, QToolBar* bar, const QString& id, const QString& text,
-                    const QKeySequence& shortcut, auto slot)
+template <typename Owner, typename Slot>
+QAction* makeAction(Owner* owner, QMenu* menu, QToolBar* bar, const QString& id, const QString& text,
+                    const QKeySequence& shortcut, Slot slot)
 {
     auto* a = new QAction(text, owner);
     a->setObjectName(id);
     if (!shortcut.isEmpty())
         a->setShortcut(shortcut);
-    QObject::connect(a, &QAction::triggered, owner, slot);
+    // `slot` arrives as either a member function pointer or a lambda taking no
+    // arguments, and neither can be handed to connect() in a way that works
+    // across Qt versions: the four argument overload that accepts a member
+    // function pointer together with a context object does not exist before
+    // Qt 6.9, and a bare pointer needs the object to call it on. Wrapping in a
+    // generic lambda works on every version. The generic parameter swallows
+    // triggered()'s `checked` argument, which these slots do not want anyway.
+    if constexpr (std::is_member_function_pointer_v<Slot>) {
+        QObject::connect(a, &QAction::triggered, owner,
+                         [owner, slot](auto&&...) { (owner->*slot)(); });
+    } else {
+        QObject::connect(a, &QAction::triggered, owner, [slot](auto&&...) { slot(); });
+    }
     if (menu)
         menu->addAction(a);
     if (bar)
