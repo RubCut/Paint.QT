@@ -305,9 +305,7 @@ if(PNQ_BUILD_TESTS AND Qt6Test_FOUND)
     target_link_libraries(pnq_icons PRIVATE Qt6::Svg)
   endif()
   add_test(NAME icons COMMAND pnq_icons)
-  set_tests_properties(icons PROPERTIES
-    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
-    TIMEOUT 120)
+  set_tests_properties(icons PROPERTIES TIMEOUT 120)
 
   # Checks every file the packaging reads: the desktop entry, the AppStream
   # metainfo, the icon files, the flatpak manifest and the PKGBUILD. A release
@@ -317,9 +315,13 @@ if(PNQ_BUILD_TESTS AND Qt6Test_FOUND)
   target_link_libraries(pnq_packages PRIVATE Qt6::Core Qt6::Gui)
   target_compile_definitions(pnq_packages PRIVATE PNQ_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
   add_test(NAME packages COMMAND pnq_packages)
-  set_tests_properties(gui_smoke PROPERTIES
-    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
-    TIMEOUT 120)
+  set_tests_properties(packages PROPERTIES TIMEOUT 120)
+
+  # Every suite runs headless. Five of the six build real windows, and without
+  # this they abort with "could not connect to display" on a build machine, which
+  # is how two of them were failing on CI while passing locally by hand.
+  set_tests_properties(core_tests gui_smoke drag_paint tool_audit icons packages
+    PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()
 
 # --------------------------------------------------------------------------

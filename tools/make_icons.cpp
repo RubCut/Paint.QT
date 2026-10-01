@@ -7,7 +7,7 @@
 // ship cannot drift from the icon the window shows.
 //
 // Usage: pnq_make_icons <svg> <output directory>
-#include <QGuiApplication>
+#include <QCoreApplication>
 #include <QImage>
 #include <QPainter>
 #include <QSvgRenderer>
@@ -138,7 +138,11 @@ bool writeIcns(const QString& path, QSvgRenderer& svg)
 
 int main(int argc, char** argv)
 {
-    QGuiApplication app(argc, argv);
+    // QCoreApplication on purpose. This tool rasterises the mark into QImages and
+    // never opens a window, so it must not need a display: it runs as part of the
+    // build, and a build machine has none. A QGuiApplication here aborts with
+    // "could not connect to display" and takes the whole build down with it.
+    QCoreApplication app(argc, argv);
     if (argc < 3) {
         std::fprintf(stderr, "usage: %s <svg> <output dir>\n", argv[0]);
         return 2;
