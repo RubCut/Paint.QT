@@ -78,6 +78,15 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="1.0.1" date="2026-10-02">
+      <description>
+        <p>The metadata is now correct: the metainfo names an icon, without which
+        appstreamcli cannot compose the component, the application id matches the
+        repository it lives in, and the packages carry the real homepage and
+        contact. The licence is installed where Debian, Arch and RPM each look
+        for it.</p>
+      </description>
+    </release>
     <release version="1.0.0" date="2026-10-01">
       <description>
         <p>First release.</p>
