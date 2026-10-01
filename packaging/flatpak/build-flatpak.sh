@@ -27,10 +27,20 @@ done
 # JSON and a .yaml one as YAML. This manifest is YAML.
 manifest="${here}/${app_id}.yaml"
 
-echo "==> adding the KDE runtime if it is missing"
+# The runtime is read from the manifest rather than repeated here. It used to say
+# org.kde.Platform//6.7 in both files, and when Flathub retired 6.7 the two drifted
+# into disagreeing about which runtime the build wanted.
+runtime="$(sed -n 's/^runtime: *//p' "${manifest}" | head -1)"
+sdk="$(sed -n 's/^sdk: *//p' "${manifest}" | head -1)"
+if [ -z "${runtime}" ] || [ -z "${sdk}" ]; then
+    echo "error: could not read runtime and sdk from ${manifest}" >&2
+    exit 1
+fi
+
+echo "==> adding ${runtime} if it is missing"
 flatpak remote-add --if-not-exists flathub \
     https://dl.flathub.org/repo/flathub.flatpakrepo > /dev/null 2>&1 || true
-flatpak install --if-not-exists -y flathub org.kde.Platform//6.7 org.kde.Sdk//6.7
+flatpak install --if-not-exists -y flathub "${runtime}//master" "${sdk}//master"
 
 # flatpak-builder resolves a relative `sources.path` against the directory it is
 # run from, not against the manifest. The manifest is run from the repository
