@@ -198,7 +198,12 @@ jobs:
       # and debugedit to produce the package. debugedit is its own package, core/debugedit,
       # not something elfutils or binutils ships.
       - name: Install dependencies
-        run: pacman -Syu --noconfirm --needed cmake ninja qt6-base qt6-svg fakeroot core/debugedit
+        # base-devel brings the compiler and the headers. The archlinux:latest
+        # container is deliberately minimal, so without it CMake finds no C++
+        # compiler at all.
+        run: >-
+          pacman -Syu --noconfirm --needed
+          base-devel cmake ninja qt6-base qt6-svg fakeroot core/debugedit
 
       # The PKGBUILD fetches the release tarball, which does not exist before a
       # tag is pushed. Rather than rewriting the recipe with sed, which would
