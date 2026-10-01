@@ -55,15 +55,15 @@
 
   <screenshots>
     <screenshot type="default">
-      <image type="source">screenshots/01-window.png</image>
+      <image>https://raw.githubusercontent.com/RubCut/Paint.QT/bca52acd6da1ff730b40c34c7716c28c405083aa/packaging/linux/screenshots/01-window.png</image>
       <caption>The window as it opens, with the palettes in Paint.NET's corners</caption>
     </screenshot>
     <screenshot>
-      <image type="source">screenshots/02-drawing.png</image>
+      <image>https://raw.githubusercontent.com/RubCut/Paint.QT/bca52acd6da1ff730b40c34c7716c28c405083aa/packaging/linux/screenshots/02-drawing.png</image>
       <caption>Freehand strokes, each one a separate step in the history</caption>
     </screenshot>
     <screenshot>
-      <image type="source">screenshots/03-layers.png</image>
+      <image>https://raw.githubusercontent.com/RubCut/Paint.QT/bca52acd6da1ff730b40c34c7716c28c405083aa/packaging/linux/screenshots/03-layers.png</image>
       <caption>A second layer with a shape on it</caption>
     </screenshot>
   </screenshots>
@@ -95,7 +95,4 @@
     <display_length compare="ge">768</display_length>
   </requires>
 
-  <recommends>
-    <control>pointing</control>
-  </recommends>
 </component>

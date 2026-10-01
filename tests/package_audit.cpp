@@ -187,36 +187,41 @@ int main(int argc, char** argv)
             check(releases >= 1,
                   QStringLiteral("metainfo lists at least one release (%1)").arg(releases));
 
-            // Flathub requires screenshots, and appstreamcli compose refuses a
-            // component without them. The <image> paths are relative to the
-            // metainfo file, so each one has to exist next to it.
-            const QString metaDir = QFileInfo(path).absolutePath();
-            QStringList missingShots;
+            // Flathub requires screenshots, and appstreamcli rejects a relative
+            // path with "web-url-expected": the <image> has to be a direct URL.
+            // This is reproduced here because a validation error fails the whole
+            // Flatpak build at the compose step.
             QXmlStreamReader shots;
             shots.addData(text.toUtf8());
-            QStringList shotPaths;
+            QStringList shotUrls;
             while (!shots.atEnd()) {
                 shots.readNext();
-                if (shots.name().toString() == QLatin1String("image")
-                    && shots.attributes().value(QLatin1String("type"))
-                           == QLatin1String("source")) {
-                    shotPaths << shots.readElementText().trimmed();
+                if (shots.name().toString() == QLatin1String("image")) {
+                    const QString v = shots.readElementText().trimmed();
+                    if (v.startsWith(QLatin1String("http")))
+                        shotUrls << v;
+                    else if (v.endsWith(QLatin1String(".png")))
+                        shotUrls << QStringLiteral("<relative:%1>").arg(v);
                 }
             }
-            check(!shotPaths.isEmpty(),
+            check(!shotUrls.isEmpty(),
                   QStringLiteral("metainfo lists screenshots, which Flathub requires (%1)")
-                      .arg(shotPaths.size()));
-            for (const QString& rel : std::as_const(shotPaths)) {
-                const QString full = metaDir + QLatin1Char('/') + rel;
-                if (!QFile::exists(full))
-                    missingShots << rel;
-            }
-            check(missingShots.isEmpty(),
-                  missingShots.isEmpty()
-                      ? QStringLiteral("every screenshot the metainfo names is shipped (%1)")
-                            .arg(shotPaths.size())
-                      : QStringLiteral("metainfo names screenshots that are not there: %1")
-                            .arg(missingShots.join(QStringLiteral(", "))));
+                      .arg(shotUrls.size()));
+            QStringList badShots;
+            for (const QString& u : std::as_const(shotUrls))
+                if (!u.startsWith(QLatin1String("https://")))
+                    badShots << u;
+            check(badShots.isEmpty(),
+                  badShots.isEmpty()
+                      ? QStringLiteral("every screenshot is an https URL")
+                      : QStringLiteral("screenshots that are not https URLs: %1")
+                            .arg(badShots.join(QStringLiteral(", "))));
+            // The same control must not appear under both <supports> and
+            // <recommends>; appstreamcli calls that a validation error.
+            const bool bothRelations = text.contains(QLatin1String("<recommends>"))
+                                       && text.contains(QLatin1String("<supports>"));
+            check(!bothRelations,
+                  QStringLiteral("controls are not declared under both supports and recommends"));
             check(QFile::exists(root + QStringLiteral("/LICENSE")),
                   QStringLiteral("a LICENSE file ships, which the licence claim depends on"));
             const QString licence = readAll(root + QStringLiteral("/LICENSE"));

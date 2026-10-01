@@ -342,12 +342,10 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/paint-qt.desktop"
 install(FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/io.github.paintqt.Paint.QT.metainfo.xml"
   DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/metainfo")
-# The <image> paths in the metainfo file are relative to it, so the screenshots
-# have to land in a screenshots/ directory next to it. Flathub requires at least
-# one, and appstreamcli compose refuses a component that has none.
-install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/screenshots"
-  DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/metainfo"
-  FILES_MATCHING PATTERN "*.png")
+# The screenshots are referenced from the metainfo by URL, not shipped inside the
+# package: Flathub requires a direct link to the image, and appstreamcli rejects
+# a relative path with "web-url-expected". They stay in the repository because
+# that URL points at them.
 # Debian ships the licence at a fixed path under every copyright policy.
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
   install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"

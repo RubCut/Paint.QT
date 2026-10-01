@@ -163,6 +163,17 @@ jobs:
 
       # --verify is what makes this job worth having: it proves the app starts
       # inside the sandbox, which is exactly what a Flathub review checks.
+      # Run the AppStream validator before the build. compose runs it too, but
+      # only after the whole application has been compiled, so a metadata mistake
+      # costs the entire build cycle to find out.
+      - name: Validate the AppStream metadata
+        run: |
+          sudo apt-get install -y appstream
+          appstreamcli validate --no-net --explain \
+            packaging/linux/io.github.paintqt.Paint.QT.metainfo.xml
+      - name: Validate the desktop entry
+        run: desktop-file-validate packaging/linux/paint-qt.desktop
+
       - name: Build
         run: |
           flatpak-builder --user --repo=packaging/flatpak/flatpak-repo --force-clean \
