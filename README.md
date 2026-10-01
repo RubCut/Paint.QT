@@ -176,3 +176,4 @@ Paint.NET is a registered trademark of its owner. This is an independent reimple
 no affiliation or endorsement is implied.
 
 [pdn]: https://www.getpaint.net/
+Paint.NET recreated on QT! 
