@@ -1,6 +1,6 @@
-<img src="packaging/icons/paint-qt.svg" width="96" alt="" align="left">
+<img src="packaging/icons/paint-qt.svg" width="128" alt="" align="left">
 
-# Paint.QT
+**Paint.QT**
 
 **A raster image editor for Linux desktops, written in C++20 on Qt 6.**
 
