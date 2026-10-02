@@ -447,7 +447,10 @@ jobs:
 
           test -f flatpak-repo/exports/share/metainfo/io.github.RubCut.Paint.QT.metainfo.xml
           test -f flatpak-repo/exports/share/applications/io.github.RubCut.Paint.QT.desktop
-          test -f flatpak-repo/exports/share/icons/hicolor/scalable/apps/io.github.RubCut.Paint.QT.svg
+          # A PNG, not the scalable icon: the manifest drops the SVG because
+          # flatpak-builder will not export it, and the sizes that panels and
+          # software centres ask for are the ones that matter.
+          test -f flatpak-repo/exports/share/icons/hicolor/256x256/apps/io.github.RubCut.Paint.QT.png
           test -f flatpak-repo/exports/share/bin/paint-qt
 
           # The one-line installer a software centre understands.

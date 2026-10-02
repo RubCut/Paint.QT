@@ -25,9 +25,6 @@ finish-args:
   - --filesystem=xdg-download
 
 build-options:
-  # rofiles-fuse is turned off from the command line rather than here: the
-  # flatpak-builder shipped in org.flatpak.Builder rejects flatpak-builder-args
-  # as an unknown property of BuilderOptions.
   append-path: /usr/lib/sdk/qt6/bin
   prepend-ld-library-path: /usr/lib/sdk/qt6/lib
   env:
@@ -50,6 +47,16 @@ modules:
       # test compares against, so this target is part of the normal build.
       - cmake --build build --target pnq_icons_generated
       - cmake --install build
+      # The scalable icon is dropped here and only here. flatpak-builder refuses
+      # to export it: ".../io.github.RubCut.Paint.QT.svg is not a valid icon:
+      # Format not recognized", and the message is gdk-pixbuf's. Installing
+      # librsvg2-common on the runner, which provides the SVG loader, did not
+      # change it, so the check is not reading the host's loaders.
+      #
+      # The eight PNG sizes stay, from 16 to 512, and those are what a panel, a
+      # file chooser and a software centre actually ask for. The .deb, the .rpm
+      # and the tarball keep the SVG, where the icon theme reads it directly.
+      - rm -f /app/share/icons/hicolor/scalable/apps/io.github.RubCut.Paint.QT.svg
     sources:
       # This manifest lives in packaging/flatpak/, so the repository root is two
       # levels up. With `..` flatpak-builder copies the packaging directory
