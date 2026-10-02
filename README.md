@@ -10,8 +10,6 @@
 
 Qt 6 · C++20 · GPL-3.0-or-later · Linux and the BSDs · `.pdn`
 
----
-
 The tool set and the palette layout are the ones people know from
 [Paint.NET](https://www.getpaint.net/), and so are two further things: it reads and
 writes the `.pdn` format, and its history treats one stroke as one undo step. Nothing
