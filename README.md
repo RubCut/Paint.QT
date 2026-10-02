@@ -172,10 +172,11 @@ The manifest is `packaging/flatpak/io.github.RubCut.Paint.QT.yaml` and uses
 `org.kde.Platform//6.11`. It requests no privileges beyond the defaults plus the picture,
 document and download directories, so the file dialog opens through the portal.
 
-CI builds this with Flathub's own `org.flatpak.Builder` rather than the distribution's,
-because the Ubuntu package pairs a `flatpak-builder` with an appstreamcli whose compose
-step fails on the component. It then exports a signed ostree repository, writes the
-`.flatpakref`, produces a single-file bundle, and publishes the repository to GitHub Pages.
+CI builds the same manifest with the distribution's `flatpak-builder`, exports a signed
+ostree repository, writes the `.flatpakref`, produces a single-file bundle, and publishes
+the repository to GitHub Pages. Both the script and the job first ask Flathub which
+versions of the runtime it publishes, so a retired one is named rather than surfacing
+halfway through a build.
 
 ### AppImage
 
