@@ -474,10 +474,15 @@ jobs:
           fi
           echo "exported as ${ref}, branch ${branch}"
 
-          # The exported files are checked in the build directory's export/ tree,
-          # not in the repository: a summary repository keeps everything in
-          # objects/ and has no exports/ directory at all, which is what the first
-          # version of this check assumed and why it named four missing files.
+          # The files are checked in the build directory, not in the repository: a
+          # summary repository keeps everything in objects/ and has no exports/
+          # directory at all, which is what the first version of this check
+          # assumed and why it named four missing files.
+          #
+          # Two trees, because flatpak-builder has two: files/ is the
+          # application's own /app content, where the binary is, and export/ holds
+          # the extra files it adds to the commit, where the desktop entry, the
+          # icons and the metadata are.
           #
           # Each one is named when missing, and the tree printed, because a bare
           # `test -f` fails the step in silence.
@@ -486,7 +491,7 @@ jobs:
             "flatpak-build/export/share/metainfo/io.github.RubCut.Paint.QT.metainfo.xml" \
             "flatpak-build/export/share/applications/io.github.RubCut.Paint.QT.desktop" \
             "flatpak-build/export/share/icons/hicolor/256x256/apps/io.github.RubCut.Paint.QT.png" \
-            "flatpak-build/export/bin/paint-qt" \
+            "flatpak-build/files/bin/paint-qt" \
             "flatpak-repo/config" \
             "flatpak-repo/summary.sig" \
             "flatpak-repo/paint-qt.gpg" \
