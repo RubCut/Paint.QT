@@ -607,6 +607,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           cp -r "$GITHUB_WORKSPACE/flatpak-repo" repo
+          # Served verbatim. Without it GitHub Pages runs the tree through
+          # Jekyll, and the repository's summary came back 404 while every other
+          # file was served. An ostree repository has to be delivered byte for
+          # byte, with nothing rewriting or skipping files in it.
+          touch .nojekyll
+
           cat > index.html <<'EOF'
           <!DOCTYPE html>
           <html><head><meta charset="utf-8"><title>Paint.QT Flatpak repository</title></head>
