@@ -1,25 +1,14 @@
-<table>
-<tr>
-<td width="45%" valign="middle">
+<img src="packaging/icons/paint-qt.svg" width="96" alt="" align="left">
 
-<img src="packaging/icons/paint-qt.svg" width="128" alt="" align="left">
+# Paint.QT
 
-<h1>Paint.QT</h1>
-
-</td>
-<td width="55%" valign="middle">
-
-<h3>A raster image editor for Linux desktops,<br>written in C++20 on Qt 6.</h3>
+**A raster image editor for Linux desktops, written in C++20 on Qt 6.**
 
 [![CI](https://github.com/RubCut/Paint.QT/actions/workflows/build.yml/badge.svg)](https://github.com/RubCut/Paint.QT/actions/workflows/build.yml)
 [![Release](https://img.shields.io/github/v/release/RubCut/Paint.QT?label=release)](https://github.com/RubCut/Paint.QT/releases/latest)
 [![Licence](https://img.shields.io/badge/licence-GPL--3.0--or--later-blue.svg)](LICENSE)
 
 Qt 6 · C++20 · GPL-3.0-or-later · Linux and the BSDs · `.pdn`
-
-</td>
-</tr>
-</table>
 
 ---
 
@@ -32,12 +21,9 @@ here comes from Paint.NET's code.
 
 <img src="packaging/linux/screenshots/01-window.png" alt="The window as it opens, with the palettes floating over it" width="100%">
 
-<table>
-<tr>
-<td width="50%"><img src="packaging/linux/screenshots/02-drawing.png" alt="Freehand strokes, each a separate step in the history"></td>
-<td width="50%"><img src="packaging/linux/screenshots/03-layers.png" alt="A second layer with a shape on it"></td>
-</tr>
-</table>
+<img src="packaging/linux/screenshots/02-drawing.png" alt="Freehand strokes, each a separate step in the history" width="100%">
+
+<img src="packaging/linux/screenshots/03-layers.png" alt="A second layer with a shape on it" width="100%">
 
 ## Install
 
@@ -92,9 +78,6 @@ chmod +x paint-qt.AppImage && ./paint-qt.AppImage
 
 ## What is in it
 
-<table>
-<tr><td width="50%">
-
 **28 tools**
 
 | Group | Tools |
@@ -105,8 +88,6 @@ chmod +x paint-qt.AppImage && ./paint-qt.AppImage
 | Text | Text with a live editing box |
 | Selection | Marquee, ellipse, lasso, select opaque, move |
 | Transform | Rotate, flip, scale |
-
-</td><td width="50%">
 
 **Layers** with opacity, locking, visibility, merging and flattening.
 
@@ -121,9 +102,6 @@ in either direction.
 
 **Freehand strokes are smoothed** along a Catmull-Rom spline through the mouse samples,
 so a fast drag comes out smooth instead of as visible chords.
-
-</td></tr>
-</table>
 
 The window draws its own light chrome, so it looks the same on every desktop instead of
 inheriting whatever a platform's widget style happens to be.
