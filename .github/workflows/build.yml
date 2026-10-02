@@ -457,13 +457,28 @@ jobs:
             flatpak-repo flatpak-build stable
           gpg --armor --export "${keyid}" > flatpak-repo/paint-qt.gpg
 
-          test -f flatpak-repo/exports/share/metainfo/io.github.RubCut.Paint.QT.metainfo.xml
-          test -f flatpak-repo/exports/share/applications/io.github.RubCut.Paint.QT.desktop
-          # A PNG, not the scalable icon: the manifest drops the SVG because
-          # flatpak-builder will not export it, and the sizes that panels and
-          # software centres ask for are the ones that matter.
-          test -f flatpak-repo/exports/share/icons/hicolor/256x256/apps/io.github.RubCut.Paint.QT.png
-          test -f flatpak-repo/exports/share/bin/paint-qt
+          # Each one named when it is missing, and the whole tree printed, because
+          # a bare `test -f` fails the step in silence and says nothing about which
+          # of the four was absent.
+          missing=0
+          for want in \
+            "exports/share/metainfo/io.github.RubCut.Paint.QT.metainfo.xml" \
+            "exports/share/applications/io.github.RubCut.Paint.QT.desktop" \
+            "exports/share/icons/hicolor/256x256/apps/io.github.RubCut.Paint.QT.png" \
+            "exports/bin/paint-qt" \
+            "config" \
+            "refs/heads/stable" \
+          ; do
+            if [ ! -e "flatpak-repo/${want}" ]; then
+              echo "error: the repository has no ${want}" >&2
+              missing=1
+            fi
+          done
+          if [ "${missing}" -ne 0 ]; then
+            echo "what the repository does contain:" >&2
+            find flatpak-repo -maxdepth 3 -mindepth 1 >&2
+            exit 1
+          fi
 
           # The one-line installer a software centre understands.
           #
