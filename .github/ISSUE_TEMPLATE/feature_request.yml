@@ -1,0 +1,39 @@
+name: Feature request
+description: Something the editor should be able to do
+title: ''
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Most of what this editor does is here because Paint.NET does it. A request
+        for something Paint.NET cannot do is just as welcome; say which is which,
+        because it changes what a matching implementation would have to look like.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What should it do
+      description: In terms of the work you want to get done, not the code.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: pdn
+    attributes:
+      label: Does Paint.NET do this
+      options:
+        - Yes, and Paint.QT should match it
+        - Yes, and Paint.QT should do it differently
+        - No, Paint.NET cannot do this either
+        - I do not know
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: How you would expect it to behave, which tools it touches, what it affects in the .pdn file.
+    validations:
+      required: false

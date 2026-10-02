@@ -1,0 +1,90 @@
+name: Bug report
+description: Something does not work, or works differently from Paint.NET
+title: ''
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting it. The more precisely the behaviour is described,
+        the sooner it can be found and fixed.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, and what you saw instead.
+      placeholder: |
+        Selected the bucket, filled the whole canvas, switched to the paintbrush,
+        and the window closed without a message.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: What Paint.NET does in the same situation, if that is the comparison.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where
+      options:
+        - Drawing tools
+        - Layers and history
+        - Selection
+        - Colour and the palettes
+        - Files, saving and opening
+        - The window itself
+        - Installation or launching
+        - Something else
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: 1.0.1
+    validations:
+      required: true
+
+  - type: dropdown
+    id: how
+    attributes:
+      label: How was it installed
+      options:
+        - Flatpak
+        - AppImage
+        - .deb
+        - .rpm
+        - PKGBUILD on Arch
+        - Built from source
+    validations:
+      required: true
+
+  - type: textarea
+    id: desktop
+    attributes:
+      label: Desktop and graphics
+      description: |
+        Output of this, which names the desktop, the theme and the driver:
+
+        ```sh
+        echo "$XDG_CURRENT_DESKTOP $XDG_SESSION_TYPE"
+        glxinfo -B 2>/dev/null | head -5
+        ```
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: A screenshot, a file that misbehaves, the steps that do not survive.
+    validations:
+      required: false

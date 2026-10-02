@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Build and packaging problems
+    url: https://github.com/RubCut/Paint.QT/discussions
+    about: If the editor runs but the package, the repository or the release is wrong.
+  - name: Security
+    url: https://github.com/RubCut/Paint.QT/security/advisories/new
+    about: Report a vulnerability privately. Do not open a public issue for one.
