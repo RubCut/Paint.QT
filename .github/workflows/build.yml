@@ -79,8 +79,11 @@ jobs:
           # that is exactly what CPack produces when dpkg is missing.
           dpkg-deb --field "${deb}" Architecture | grep -qE '^(amd64|arm64)$'
           dpkg-deb --field "${deb}" Depends | grep -q qt6
-          dpkg-deb --contents "${deb}" | grep -q 'usr/share/applications/paint-qt.desktop'
-          dpkg-deb --contents "${deb}" | grep -q 'usr/share/icons/hicolor/256x256/apps/paint-qt.png'
+          # By the application id, not the binary name: that is what the install
+          # rules rename to, so that Flatpak exports the files and Flathub accepts
+          # the submission.
+          dpkg-deb --contents "${deb}" | grep -q 'usr/share/applications/io.github.RubCut.Paint.QT.desktop'
+          dpkg-deb --contents "${deb}" | grep -q 'usr/share/icons/hicolor/256x256/apps/io.github.RubCut.Paint.QT.png'
           dpkg-deb --contents "${deb}" | grep -q 'usr/share/metainfo/io.github.RubCut.Paint.QT.metainfo.xml'
 
       - name: Install the .deb and run it
@@ -195,6 +198,14 @@ jobs:
 
           # The application has to be found under a standard prefix.
           export APPDIR=/tmp/appdir
+          # linuxdeploy resolves the desktop entry's Icon= against the icon paths
+          # it knows about, and stopped with "Could not find suitable icon for Icon
+          # entry: io.github.RubCut.Paint.QT" when the name was changed to the
+          # application id. Putting the icon in the standard hicolor path first,
+          # under that name, is what it looks for.
+          mkdir -p "${APPDIR}/usr/share/icons/hicolor/256x256/apps"
+          cp "$GITHUB_WORKSPACE/packaging/icons/paint-qt-256.png" \
+            "${APPDIR}/usr/share/icons/hicolor/256x256/apps/io.github.RubCut.Paint.QT.png"
           ./linuxdeploy.AppImage --appdir="${APPDIR}" \
             --executable="$GITHUB_WORKSPACE/build/bin/paint-qt" \
             --desktop-file="$GITHUB_WORKSPACE/packaging/linux/paint-qt.desktop" \
@@ -223,13 +234,34 @@ jobs:
           # It also insists on the desktop file and the icon sitting at the top of
           # the AppDir, not only under usr/share, and aborts with "Desktop file not
           # found" otherwise.
+          #
+          # linuxdeploy leaves a paint-qt.desktop symlink at the root as well, so
+          # remove it: the id named one is the one the metainfo's launchable
+          # points at, and two desktop files at the top of the tree is one too
+          # many. The copy inside usr/share is renamed to match for the same
+          # reason.
           wget -q -O appimagetool \
             https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool
-          cp "$GITHUB_WORKSPACE/packaging/linux/paint-qt.desktop" "${APPDIR}/paint-qt.desktop"
-          cp "$GITHUB_WORKSPACE/packaging/icons/paint-qt-256.png" "${APPDIR}/paint-qt.png"
+          # Named after the application id, which is what the desktop entry's
+          # Icon= asks for and what the metainfo's launchable names. Copying them
+          # in under the binary name left the image describing files it does not
+          # contain.
+          cp "$GITHUB_WORKSPACE/packaging/linux/paint-qt.desktop" \
+            "${APPDIR}/io.github.RubCut.Paint.QT.desktop"
+          cp "$GITHUB_WORKSPACE/packaging/icons/paint-qt-256.png" \
+            "${APPDIR}/io.github.RubCut.Paint.QT.png"
+          cp "$GITHUB_WORKSPACE/packaging/icons/paint-qt.svg" \
+            "${APPDIR}/io.github.RubCut.Paint.QT.svg"
 
           OUTPUT="$GITHUB_WORKSPACE/build/paint-qt.AppImage"
+          rm -f "${APPDIR}/paint-qt.desktop" "${APPDIR}/paint-qt.png"
+          if [ -f "${APPDIR}/usr/share/applications/paint-qt.desktop" ]; then
+            mv "${APPDIR}/usr/share/applications/paint-qt.desktop" \
+              "${APPDIR}/usr/share/applications/io.github.RubCut.Paint.QT.desktop"
+          fi
+          test -f "${APPDIR}/usr/share/applications/io.github.RubCut.Paint.QT.desktop"
+
           ARCH=x86_64 ./appimagetool "${APPDIR}" "${OUTPUT}"
 
           ls -la "${OUTPUT}"
