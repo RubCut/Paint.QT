@@ -520,24 +520,35 @@ jobs:
 
           # The one-line installer a software centre understands.
           #
-          # No Commit= lines. A .flatpakref normally carries the xa.ref value of
-          # each commit, not the ostree commit hash, and putting the hash there
-          # produces a file that looks filled in and installs nothing. Left out,
-          # flatpak resolves the commits from the repository itself.
-          cat > flatpak-repo/io.github.RubCut.Paint.QT.flatpakref <<EOF
-          [Flatpak Repo]
-          Title=Paint.QT
-          Url=https://rubcut.github.io/Paint.QT/repo
-          Branch=${branch}
-          [Runtime]
-          Runtime=runtime/org.kde.Platform/x86_64/6.11
-          Sdk=org.kde.Sdk/x86_64/6.11
-          [Application]
-          Name=io.github.RubCut.Paint.QT
-          Branch=${branch}
-          EOF
+          # The shape of this file was measured rather than guessed. A flatpakref
+          # uses the group [Flatpak Ref], and RuntimeRepo, GPGKey, Url and Name are
+          # top level keys rather than entries under a section: written as
+          # "[Flatpak Repo]" it is refused with "no Flatpak Ref group".
+          #
+          # RuntimeRepo has to be there. Without it flatpak says "Flatpakref file
+          # does not contain a RuntimeRepo" and cannot find the runtime. GPGKey is
+          # the public key base64 encoded and inline, which is how flatpak reads it,
+          # and carrying it here is what saves the person installing this a separate
+          # `gpg --import` step.
+          #
+          # No Commit= lines: a real flatpakref carries the xa.ref value of each
+          # commit rather than the ostree commit hash, and a hash there produces a
+          # file that looks filled in and installs nothing.
+          #
+          # Checked end to end against a local http server: flatpak parsed this
+          # shape, accepted the key, added the remote, and got as far as looking for
+          # the application ref.
+          repo_url="https://rubcut.github.io/Paint.QT/repo"
+          key_b64="$(gpg --export "${keyid}" | base64 -w0)"
+          printf '[Flatpak Repo]\nTitle=Paint.QT\nUrl=%s/\nGPGKey=%s\n' \
+            "${repo_url}" "${key_b64}" > flatpak-repo/paint-qt.flatpakrepo
+          printf '[Flatpak Ref]\nName=%s\nBranch=%s\nTitle=Paint.QT\nIsRuntime=false\nUrl=%s/\nSuggestRemoteName=paintqt\nGPGKey=%s\nRuntimeRepo=%s/paint-qt.flatpakrepo\n[Runtime]\nRuntime=runtime/org.kde.Platform/x86_64/6.11\nSdk=org.kde.Sdk/x86_64/6.11\n[Application]\nName=%s\nBranch=%s\n' \
+            "io.github.RubCut.Paint.QT" "${branch}" "${repo_url}" "${key_b64}" \
+            "${repo_url}" "io.github.RubCut.Paint.QT" "${branch}" \
+            > flatpak-repo/io.github.RubCut.Paint.QT.flatpakref
           cat flatpak-repo/io.github.RubCut.Paint.QT.flatpakref
           test -s flatpak-repo/io.github.RubCut.Paint.QT.flatpakref
+          test -s flatpak-repo/paint-qt.flatpakrepo
 
       # The distribution's flatpak-builder has no --verify, and the run failed on
       # "Option parsing failed: Unknown option --verify". Installing the exported
@@ -638,6 +649,7 @@ jobs:
           path: |
             paint-qt.flatpak
             flatpak-repo/io.github.RubCut.Paint.QT.flatpakref
+            flatpak-repo/paint-qt.flatpakrepo
             flatpak-repo/paint-qt.gpg
 
   arch:

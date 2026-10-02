@@ -32,29 +32,33 @@ here comes from Paint.NET's code.
 
 ## Install
 
-**Flatpak** — the repository is rebuilt by CI on every push:
+**Flatpak** — one line, and the key comes with it:
 
 ```sh
-flatpak install --user --noninteractive \
-    https://rubcut.github.io/Paint.QT/repo io.github.RubCut.Paint.QT
+flatpak install --user --noninteractive --from https://rubcut.github.io/Paint.QT/repo/io.github.RubCut.Paint.QT.flatpakref
 ```
 
-GNOME Software and KDE Discover take a `.flatpakref` instead, which is one URL:
+GNOME Software and KDE Discover take the same `.flatpakref` URL, pasted or opened from
+a browser, and both show the application before you install it.
 
-```
-https://rubcut.github.io/Paint.QT/repo/io.github.RubCut.Paint.QT.flatpakref
+If you would rather add the repository yourself and keep it under a name of your
+choosing, that is two commands:
+
+```sh
+flatpak remote-add --user --if-not-exists --gpg-key=15CC07DFA2F7AC0DA659E4B47C5A64187D334294 paintqt https://rubcut.github.io/Paint.QT/repo
+flatpak install --user paintqt io.github.RubCut.Paint.QT
 ```
 
 The repository is signed with one long-lived key, so a key you trusted for one release
-still verifies the next. If flatpak refuses the signature, import the public key served
-next to the repository:
+still verifies the next.
 
-```sh
-gpg --import https://rubcut.github.io/Paint.QT/repo/paint-qt.gpg
-flatpak remote-add --user --gpg-key=15CC07DFA2F7AC0DA659E4B47C5A64187D334294 paintqt \
-    https://rubcut.github.io/Paint.QT/repo
-flatpak install --user paintqt io.github.RubCut.Paint.QT
-```
+Two forms of this do not work, and both fail with a message that reads like a bad URL:
+
+- `flatpak install https://…/repo io.github.rubCut.Paint.QT` — the first positional
+  argument of `flatpak install` is a **remote name**, not a location, so flatpak tries to
+  find a remote called `https:` and answers `'https:' is not a valid name`.
+- The same command wrapped over two lines with a trailing backslash. Pasted as one line
+  the backslash is an ordinary character, and the argument arrives as `\ https://…`.
 
 **Packages** — every [release](https://github.com/RubCut/Paint.QT/releases) carries a
 `.deb`, an `.rpm`, the source, a macOS bundle, an AppImage and a single-file Flatpak:
@@ -145,7 +149,6 @@ cd build && ctest --output-on-failure
 | `gui_smoke` | The real window: layout, palettes, clipboard, zoom, undo |
 | `drag_paint` | A stroke through real Qt mouse events, then undo, redo and a `.pdn` round trip |
 | `tool_audit` | All 28 tools driven with real mouse events; each one has to change pixels |
-| `tool_switch` | Switching tools through the window, including after the canvas has been filled or erased |
 | `icons` | Every tool and command has its own artwork, and the mark exists at every size |
 | `packages` | Every file the packaging reads, checked before a release nobody looked at |
 
@@ -220,7 +223,7 @@ src/core/        document, layers, history, selections, image maths, effects
 src/tools/       the 28 tools and their option panels
 src/ui/          main window, canvas view, palettes, theme, dialogs
 src/resources/   procedural icons and the colour palettes
-tests/           seven test suites
+tests/           six test suites
 tools/           build time helpers
 packaging/       everything that produces an installable package
 ```
