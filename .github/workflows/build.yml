@@ -326,11 +326,16 @@ jobs:
       - name: Build
         run: |
           set -euo pipefail
+          # The form is flatpak-builder [OPTIONS] BUILD_DIR MANIFEST, so the
+          # directory has to be named. It was passing "stable" as the build
+          # directory and the manifest as a second positional, and the export
+          # step then failed on "Build directory flatpak-build not initialized".
+          #
           # No --repo here: the export step below writes the repository, signed,
           # and exporting twice would leave an unsigned commit in its history.
           flatpak-builder \
             --user --force-clean \
-            stable packaging/flatpak/io.github.RubCut.Paint.QT.yaml
+            flatpak-build packaging/flatpak/io.github.RubCut.Paint.QT.yaml
 
       # Publish the result as a standalone ostree repository: this is what a user
       # installs from, and it needs no Flathub account and no review. A dedicated
@@ -402,8 +407,8 @@ jobs:
           gpg --armor --export "${keyid}" > flatpak-repo/paint-qt.gpg
 
           test -f flatpak-repo/exports/share/metainfo/io.github.RubCut.Paint.QT.metainfo.xml
-          test -f flatpak-repo/exports/share/applications/paint-qt.desktop
-          test -f flatpak-repo/exports/share/icons/hicolor/scalable/apps/paint-qt.svg
+          test -f flatpak-repo/exports/share/applications/io.github.RubCut.Paint.QT.desktop
+          test -f flatpak-repo/exports/share/icons/hicolor/scalable/apps/io.github.RubCut.Paint.QT.svg
           test -f flatpak-repo/exports/share/bin/paint-qt
 
           # The one-line installer a software centre understands.
@@ -545,7 +550,7 @@ jobs:
           if [ -z "${pkg}" ]; then echo "no package was produced"; exit 1; fi
           echo "Built ${pkg}"
           bsdtar -tf "${pkg}" | grep -q 'usr/bin/paint-qt'
-          bsdtar -tf "${pkg}" | grep -q 'usr/share/applications/paint-qt.desktop'
-          bsdtar -tf "${pkg}" | grep -q 'usr/share/icons/hicolor/scalable/apps/paint-qt.svg'
+          bsdtar -tf "${pkg}" | grep -q 'usr/share/applications/io.github.RubCut.Paint.QT.desktop'
+          bsdtar -tf "${pkg}" | grep -q 'usr/share/icons/hicolor/scalable/apps/io.github.RubCut.Paint.QT.svg'
           bsdtar -tf "${pkg}" | grep -q 'usr/share/metainfo/io.github.RubCut.Paint.QT.metainfo.xml'
           bsdtar -tf "${pkg}" | grep -q 'usr/share/licenses/paint-qt/LICENSE'

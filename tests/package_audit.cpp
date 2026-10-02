@@ -130,8 +130,10 @@ int main(int argc, char** argv)
               QStringLiteral("Exec runs paint-qt (%1)").arg(exec));
         check(exec.contains(QLatin1String("%f")),
               QStringLiteral("Exec passes the file to open (%1)").arg(exec));
-        check(icon == QLatin1String("paint-qt"),
-              QStringLiteral("Icon is paint-qt, matching the installed hicolor name (%1)")
+        // By the application id, because that is the name the icons are
+        // installed under. Flatpak exports only files whose names match the id.
+        check(icon == QLatin1String("io.github.RubCut.Paint.QT"),
+              QStringLiteral("Icon is the application id, matching the installed hicolor name (%1)")
                   .arg(icon));
 
         // The declared MIME types have to be the formats the program can read.
@@ -264,6 +266,28 @@ int main(int argc, char** argv)
             // went unnoticed: Arch expects licenses/<package>, Debian policy
             // expects doc/<package>/copyright.
             const QString cmake = readAll(root + QStringLiteral("/CMakeLists.txt"));
+            // Everything a desktop environment looks up is named after the
+            // application id, because Flatpak exports only files whose names
+            // match the id and refuses the rest with "non-allowed export
+            // filename". The build said so for every icon and produced a Flatpak
+            // with none of them.
+            check(cmake.contains(QLatin1String("RENAME \"${PNQ_APP_ID}.desktop\"")),
+                  QStringLiteral("the desktop entry is installed as <id>.desktop"));
+            check(cmake.contains(QLatin1String("RENAME \"${PNQ_APP_ID}.png\"")),
+                  QStringLiteral("the raster icons are installed as <id>.png"));
+            check(cmake.contains(QLatin1String("RENAME \"${PNQ_APP_ID}.svg\"")),
+                  QStringLiteral("the scalable icon is installed as <id>.svg"));
+            const QString desktopEntry = readAll(pkg + QStringLiteral("/linux/paint-qt.desktop"));
+            const QString metainfo =
+                readAll(pkg + QStringLiteral("/linux/io.github.RubCut.Paint.QT.metainfo.xml"));
+            const QString appId = QStringLiteral("io.github.RubCut.Paint.QT");
+            check(desktopEntry.contains(QStringLiteral("Icon=%1").arg(appId)),
+                  QStringLiteral("the desktop entry asks for the icon by id (%1)").arg(appId));
+            check(metainfo.contains(QStringLiteral("<launchable type=\"desktop-id\">%1.desktop</launchable>")
+                                        .arg(appId)),
+                  QStringLiteral("the metainfo launches the desktop entry by id"));
+            check(metainfo.contains(QStringLiteral("<icon type=\"stock\">%1.png</icon>").arg(appId)),
+                  QStringLiteral("the metainfo names the icon by id, as it is installed"));
             check(cmake.contains(QLatin1String("/licenses/${PNQ_PACKAGE_NAME}")),
                   QStringLiteral("the licence is installed to licenses/<package>, where Arch and RPM look"));
             check(cmake.contains(QLatin1String("RENAME copyright")),

@@ -58,8 +58,10 @@ package() {
 
     # CPack is not what makepkg runs, so the desktop entry, the AppStream
     # metadata and the licence are placed by hand.
+    # Named after the application id rather than the binary: Flatpak exports only
+    # the files whose names match the id, and Flathub requires the same.
     install -Dm644 "$_srcdir/packaging/linux/paint-qt.desktop" \
-        "$pkgdir/usr/share/applications/paint-qt.desktop"
+        "$pkgdir/usr/share/applications/io.github.RubCut.Paint.QT.desktop"
     install -Dm644 "$_srcdir/packaging/linux/io.github.RubCut.Paint.QT.metainfo.xml" \
         "$pkgdir/usr/share/metainfo/io.github.RubCut.Paint.QT.metainfo.xml"
     install -Dm644 "$_srcdir/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"

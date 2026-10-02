@@ -6,7 +6,7 @@
 -->
 <component type="desktop-application">
   <id>io.github.RubCut.Paint.QT</id>
-  <launchable type="desktop-id">paint-qt.desktop</launchable>
+  <launchable type="desktop-id">io.github.RubCut.Paint.QT.desktop</launchable>
 
   <name>Paint.QT</name>
   <summary>A raster image editor for Linux desktops, with the tool set and layout of Paint.NET</summary>
@@ -18,8 +18,12 @@
        it out, then reports file-read-error for a component it never read, and
        the Flatpak build fails at the end even though the application compiled
        and exported. The validator allows only the stock and remote types, and
-       stock is the one for an icon installed in hicolor. -->
-  <icon type="stock">paint-qt.png</icon>
+       stock is the one for an icon installed in hicolor.
+
+       The name matches the file that is installed, which is named after the
+       application id: Flatpak exports only the files whose names match the id,
+       and it refuses anything else with "non-allowed export filename". -->
+  <icon type="stock">io.github.RubCut.Paint.QT.png</icon>
 
   <description>
     <p>

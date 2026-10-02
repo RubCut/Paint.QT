@@ -229,14 +229,21 @@ if(PNQ_PACKAGE_ICONS AND PNQ_HAVE_SVG)
   # hicolor wants one file per size per directory, named after the icon. That is
   # how a desktop finds the 32 px one for a panel and the 256 px one for a
   # file manager's large view without either being scaled from the other.
+  # Installed under the application id rather than under the binary name. Flatpak
+  # only exports the files whose names match the id, and it said so: "Not
+  # exporting share/icons/hicolor/48x48/apps/paint-qt.png, non-allowed export
+  # filename". The result was a Flatpak with no icon at all. Flathub requires the
+  # same naming, and so does the desktop entry.
   install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/packaging/icons/paint-qt.svg"
-    DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/scalable/apps")
+    DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/scalable/apps"
+    RENAME "${PNQ_APP_ID}.svg")
   install(FILES "${PNQ_ICON_DIR}/paint-qt.ico"
-    DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor")
+    DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor"
+    RENAME "${PNQ_APP_ID}.ico")
   foreach(size IN LISTS PNQ_ICON_SIZES)
     install(FILES "${PNQ_ICON_DIR}/paint-qt-${size}.png"
       DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/${size}x${size}/apps"
-      RENAME paint-qt.png)
+      RENAME "${PNQ_APP_ID}.png")
   endforeach()
 endif()
 
@@ -338,8 +345,10 @@ install(TARGETS paint-qt
   BUNDLE  DESTINATION .)
 
 # ---- Linux desktop integration -------------------------------------------
+# Named after the id, not the binary, for the same reason as the icons.
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/paint-qt.desktop"
-  DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications")
+  DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications"
+  RENAME "${PNQ_APP_ID}.desktop")
 install(FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/packaging/linux/io.github.RubCut.Paint.QT.metainfo.xml"
   DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/metainfo")
