@@ -376,6 +376,18 @@ jobs:
             --user --force-clean \
             flatpak-build packaging/flatpak/io.github.RubCut.Paint.QT.yaml
 
+          # flatpak-builder refuses to export any icon gdk-pixbuf cannot read,
+          # which it did for the SVG and then for the .ico, each time only after
+          # the whole build. The manifest drops both, and this says so plainly if
+          # a third format ever reaches the tree.
+          stray=$(find flatpak-build/files/share/icons -type f ! -name '*.png' || true)
+          if [ -n "${stray}" ]; then
+            echo "error: these icons are not PNG and flatpak will refuse the export:" >&2
+            echo "${stray}" | sed 's/^/  /' >&2
+            exit 1
+          fi
+          echo "all icons are PNG"
+
       # Publish the result as a standalone ostree repository: this is what a user
       # installs from, and it needs no Flathub account and no review. A dedicated
       # GPG key signs the export, because flatpak refuses to install from a

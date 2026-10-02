@@ -47,16 +47,20 @@ modules:
       # test compares against, so this target is part of the normal build.
       - cmake --build build --target pnq_icons_generated
       - cmake --install build
-      # The scalable icon is dropped here and only here. flatpak-builder refuses
-      # to export it: ".../io.github.RubCut.Paint.QT.svg is not a valid icon:
-      # Format not recognized", and the message is gdk-pixbuf's. Installing
-      # librsvg2-common on the runner, which provides the SVG loader, did not
-      # change it, so the check is not reading the host's loaders.
+      # Two icon files are dropped here and only here, because flatpak-builder
+      # refuses to export either of them: "... is not a valid icon: Format not
+      # recognized", and that message is gdk-pixbuf's. It rejected the scalable
+      # SVG first, and then the .ico. Installing librsvg2-common on the runner,
+      # which provides the SVG loader, changed nothing, so the check is not
+      # reading the host's loaders and there is nothing further to install.
       #
       # The eight PNG sizes stay, from 16 to 512, and those are what a panel, a
       # file chooser and a software centre actually ask for. The .deb, the .rpm
-      # and the tarball keep the SVG, where the icon theme reads it directly.
+      # and the tarball keep the SVG, where the icon theme reads it directly, and
+      # the .ico is a Windows artefact that has no place in a Linux package
+      # either.
       - rm -f /app/share/icons/hicolor/scalable/apps/io.github.RubCut.Paint.QT.svg
+      - rm -f /app/share/icons/hicolor/io.github.RubCut.Paint.QT.ico
     sources:
       # This manifest lives in packaging/flatpak/, so the repository root is two
       # levels up. With `..` flatpak-builder copies the packaging directory
