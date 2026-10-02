@@ -1,16 +1,25 @@
-<div align="center">
+<table>
+<tr>
+<td width="45%" valign="middle">
 
-<img src="packaging/icons/paint-qt.svg" width="128" alt="Paint.QT">
+<img src="packaging/icons/paint-qt.svg" width="128" alt="" align="left">
 
-# Paint.QT
+<h1>Paint.QT</h1>
 
-**A raster image editor for Linux desktops, written in C++20 on Qt 6.**
+</td>
+<td width="55%" valign="middle">
+
+<h3>A raster image editor for Linux desktops,<br>written in C++20 on Qt 6.</h3>
 
 [![CI](https://github.com/RubCut/Paint.QT/actions/workflows/build.yml/badge.svg)](https://github.com/RubCut/Paint.QT/actions/workflows/build.yml)
 [![Release](https://img.shields.io/github/v/release/RubCut/Paint.QT?label=release)](https://github.com/RubCut/Paint.QT/releases/latest)
 [![Licence](https://img.shields.io/badge/licence-GPL--3.0--or--later-blue.svg)](LICENSE)
 
-</div>
+Qt 6 · C++20 · GPL-3.0-or-later · Linux and the BSDs · `.pdn`
+
+</td>
+</tr>
+</table>
 
 ---
 

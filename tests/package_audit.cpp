@@ -419,10 +419,22 @@ int main(int argc, char** argv)
                       QStringLiteral("CI installs the runtime the manifest names (%1)").arg(rt));
                 check(workflow.contains(sk),
                       QStringLiteral("CI installs the sdk the manifest names (%1)").arg(sk));
-                // The flatpakref tells software centres which runtime to fetch, so
-                // it has to name the same one or the install fails at the user.
-                check(workflow.contains(QStringLiteral("/x86_64/") + version),
-                      QStringLiteral("the flatpakref names runtime version %1").arg(version));
+                // The flatpakref is cut to the shape Flathub publishes and GNOME
+                // Software accepts: one [Flatpak Ref] group, no other sections.
+                // It carried [Runtime] and [Application] naming the runtime and
+                // the application; flatpak reads past them and GNOME Software
+                // calls such a file invalid. So the runtime version is checked
+                // where it now has to appear, which is the install step and the
+                // manifest, and the extra sections are checked as absent.
+                check(!workflow.contains(QLatin1String("[Runtime]\\n")),
+                      QStringLiteral("the generated flatpakref has no [Runtime] section"));
+                check(!workflow.contains(QLatin1String("[Application]\\n")),
+                      QStringLiteral("the generated flatpakref has no [Application] section"));
+                check(workflow.contains(QLatin1String("[Flatpak Ref]")),
+                      QStringLiteral("the generated flatpakref uses the [Flatpak Ref] group"));
+                check(workflow.contains(QLatin1String("RuntimeRepo=")),
+                      QStringLiteral("the generated flatpakref carries RuntimeRepo, without which "
+                                     "flatpak cannot find the runtime"));
             }
             // `base: app` is an invalid application id: an app base name needs
             // at least two periods. With runtime and sdk given, base is derived
