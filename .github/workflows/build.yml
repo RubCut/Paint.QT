@@ -457,20 +457,22 @@ jobs:
             flatpak-repo flatpak-build stable
           gpg --armor --export "${keyid}" > flatpak-repo/paint-qt.gpg
 
-          # The branch is read back rather than assumed. Passing "stable" as the
-          # third argument did not produce refs/heads/stable on the runner: the
-          # ref came out as "app", which is the name the build directory carries,
-          # so the positional argument is not honoured there. Everything below
-          # uses the name that actually exists, which also keeps the flatpakref
-          # and the bundle pointing at the same ref.
-          branch=$(find flatpak-repo/refs/heads -mindepth 1 -maxdepth 1 -type f \
-            -printf '%f\n' | head -1)
-          if [ -z "${branch}" ]; then
-            echo "error: the export wrote no branch under refs/heads" >&2
+          # Both names are read back out of the repository rather than assumed.
+          #
+          # The ref is not refs/heads/<branch>: it is
+          # refs/heads/app/<id>/<arch>/<branch>, where "app" is the namespace
+          # flatpak uses for applications, and the branch is the leaf. An earlier
+          # version looked for a file one level down, found none, and reported
+          # that the export had written no branch when it had written exactly the
+          # right one.
+          ref=$(find flatpak-repo/refs/heads -type f -printf '%P\n' | head -1)
+          branch=$(find flatpak-repo/refs/heads -type f -printf '%f\n' | head -1)
+          if [ -z "${ref}" ] || [ -z "${branch}" ]; then
+            echo "error: the export wrote no ref under refs/heads" >&2
             find flatpak-repo/refs >&2
             exit 1
           fi
-          echo "exported to branch ${branch}"
+          echo "exported as ${ref}, branch ${branch}"
 
           # The exported files are checked in the build directory's export/ tree,
           # not in the repository: a summary repository keeps everything in
@@ -488,7 +490,7 @@ jobs:
             "flatpak-repo/config" \
             "flatpak-repo/summary.sig" \
             "flatpak-repo/paint-qt.gpg" \
-            "flatpak-repo/refs/heads/${branch}" \
+            "flatpak-repo/refs/heads/${ref}" \
           ; do
             if [ ! -e "${want}" ]; then
               echo "error: missing ${want}" >&2
@@ -546,8 +548,7 @@ jobs:
       - name: Single-file bundle
         run: |
           set -euo pipefail
-          branch=$(find flatpak-repo/refs/heads -mindepth 1 -maxdepth 1 -type f \
-            -printf '%f\n' | head -1)
+          branch=$(find flatpak-repo/refs/heads -type f -printf '%f\n' | head -1)
           test -n "${branch}"
           echo "bundling branch ${branch}"
           flatpak build-bundle flatpak-repo paint-qt.flatpak "${branch}"
