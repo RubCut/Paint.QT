@@ -335,7 +335,14 @@ jobs:
           # flatpak-builder itself: installing the runtimes is not enough, and
           # without this the build step dies on "flatpak-builder: command not
           # found".
-          sudo apt-get install -y flatpak flatpak-builder desktop-file-utils appstream
+          # librsvg2-common carries the gdk-pixbuf SVG loader, without which
+          # flatpak cannot read the scalable icon and the export stops on
+          # "... io.github.RubCut.Paint.QT.svg is not a valid icon: Format not
+          # recognized". Reproduced here: GdkPixbuf refuses the same file with
+          # "Couldn't recognize the image file format" on a machine without the
+          # loader, and the loader is not part of a base install.
+          sudo apt-get install -y flatpak flatpak-builder desktop-file-utils \
+            appstream librsvg2-common
           flatpak remote-add --user --if-not-exists flathub \
             https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak install --user -y flathub \
