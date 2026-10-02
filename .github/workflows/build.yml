@@ -292,6 +292,14 @@ jobs:
   flatpak:
     name: Flatpak
     runs-on: ubuntu-24.04
+    # The Pages publication pushes to this repository's gh-pages branch, and the
+    # default token only has contents: read. Without this the push is refused
+    # with "Permission to RubCut/Paint.QT.git denied to github-actions[bot]",
+    # which is what happened when the token also had to reach a second
+    # repository and the reason was misread as a scoping problem rather than a
+    # missing permission.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v5
 

@@ -386,23 +386,29 @@ int main(int argc, char** argv)
                   QStringLiteral("the manifest pins a runtime version (%1)").arg(version));
             const QString workflow =
                 readAll(root + QStringLiteral("/.github/workflows/build.yml"));
-            // The address the flatpakref and the README give has to be the one
-            // CI publishes to. A workflow token cannot push to a different
-            // repository, so the pages branch lives here and the URL follows the
-            // repository name.
+            // Everything that reads the workflow is inside this guard, because
+            // the Arch job stages the sources without .github/ and the test runs
+            // there too. Unguarded, it failed on a file that is legitimately not
+            // there. The README is staged, so it is checked either way.
             const QString pagesUrl = QStringLiteral("https://rubcut.github.io/Paint.QT/repo");
-            check(workflow.contains(pagesUrl),
-                  QStringLiteral("the flatpakref points at %1").arg(pagesUrl));
             const QString readme = readAll(root + QStringLiteral("/README.md"));
             check(readme.contains(pagesUrl),
-                  QStringLiteral("the README gives the same address as the flatpakref"));
-            // The push has to name this repository. A workflow token is scoped
-            // to its own repository, and pushing to a second one failed with
-            // "Permission to RubCut/Paint.QT-repo.git denied to github-actions".
-            // Matched on the push line, not on the string, because the reason is
-            // written in a comment right above it.
-            check(workflow.contains(QLatin1String("x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git")),
-                  QStringLiteral("the pages push targets this repository, the only one the token can write to"));
+                  QStringLiteral("the README gives %1, the address the repository is served at")
+                      .arg(pagesUrl));
+            if (!workflow.isEmpty()) {
+                // The address the flatpakref gives has to be the one CI publishes
+                // to, or the installer a user is handed installs nothing.
+                check(workflow.contains(pagesUrl),
+                      QStringLiteral("the flatpakref points at %1").arg(pagesUrl));
+                // The push has to name this repository. A workflow token is
+                // scoped to the repository it runs in, and pushing anywhere else
+                // failed with "Permission to ... denied to github-actions[bot]".
+                // Matched on the push line, not on the word, because the reason is
+                // written in a comment right above it.
+                check(workflow.contains(QLatin1String(
+                          "x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git")),
+                      QStringLiteral("the pages push targets this repository"));
+            }
             if (!workflow.isEmpty() && !runtime.isEmpty() && !version.isEmpty()) {
                 // The workflow installs these by name, and the build fails with
                 // "Nothing matches org.kde.Sdk in remote flathub" when the two
