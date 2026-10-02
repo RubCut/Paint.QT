@@ -544,17 +544,18 @@ jobs:
           set -euo pipefail
           sudo apt-get install -y xvfb
 
-          # The signing key first, from the file the repository itself serves.
-          # flatpak refuses an unsigned commit, and the step that exported it used
-          # a throwaway keyring, so without this the install stopped with "Can't
-          # check signature: public key not found". Importing the published key
-          # rather than passing --no-gpg-verify also proves that the key we tell
-          # users to import really does verify what we publish, which is the one
-          # thing a signature is for.
-          gpg --batch --import flatpak-repo/paint-qt.gpg
-
-          flatpak remote-add --user --if-not-exists paintqt-local \
-            "file://$PWD/flatpak-repo"
+          # The key is attached to the remote with --gpg-import, taken from the
+          # file the repository itself serves. Importing it into ~/.gnupg by hand
+          # is not enough: flatpak verifies a commit against the key configured
+          # for the remote, and a file:// remote has none, so it answered "Can't
+          # check signature: public key not found" even with the key present.
+          #
+          # Not --no-gpg-verify, which is one flag shorter and would prove nothing:
+          # this way the step only passes if the key we tell users to import really
+          # does verify the commit we published.
+          flatpak remote-add --user --if-not-exists \
+            --gpg-import=flatpak-repo/paint-qt.gpg \
+            paintqt-local "file://$PWD/flatpak-repo"
           flatpak install --user -y --no-deps paintqt-local io.github.RubCut.Paint.QT
           xvfb-run -a flatpak run --user io.github.RubCut.Paint.QT --version
 
