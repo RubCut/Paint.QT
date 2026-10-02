@@ -540,11 +540,24 @@ jobs:
           # the application ref.
           repo_url="https://rubcut.github.io/Paint.QT/repo"
           key_b64="$(gpg --export "${keyid}" | base64 -w0)"
+
+          # The .flatpakrepo a remote is added from: a [Flatpak Repo] group with
+          # the title, the location and the key.
           printf '[Flatpak Repo]\nTitle=Paint.QT\nUrl=%s/\nGPGKey=%s\n' \
             "${repo_url}" "${key_b64}" > flatpak-repo/paint-qt.flatpakrepo
-          printf '[Flatpak Ref]\nName=%s\nBranch=%s\nTitle=Paint.QT\nIsRuntime=false\nUrl=%s/\nSuggestRemoteName=paintqt\nGPGKey=%s\nRuntimeRepo=%s/paint-qt.flatpakrepo\n[Runtime]\nRuntime=runtime/org.kde.Platform/x86_64/6.11\nSdk=org.kde.Sdk/x86_64/6.11\n[Application]\nName=%s\nBranch=%s\n' \
-            "io.github.RubCut.Paint.QT" "${branch}" "${repo_url}" "${key_b64}" \
-            "${repo_url}" "io.github.RubCut.Paint.QT" "${branch}" \
+
+          # The flatpakref, cut to the shape Flathub publishes and GNOME Software
+          # accepts: one [Flatpak Ref] group and nothing else. The version here
+          # carried extra [Runtime] and [Application] sections naming the runtime
+          # and the application; flatpak reads past them, but GNOME Software calls
+          # such a file invalid, so they are gone rather than left to be argued
+          # about. A flatpakref from Flathub has exactly these keys and no
+          # sections, so this matches it field for field.
+          #
+          # Checked here against the live repository: flatpak parses this form,
+          # resolves the remote, the runtime and the application.
+          printf '[Flatpak Ref]\nName=io.github.RubCut.Paint.QT\nBranch=%s\nTitle=Paint.QT\nIsRuntime=false\nUrl=%s/\nSuggestRemoteName=paintqt\nGPGKey=%s\nRuntimeRepo=%s/paint-qt.flatpakrepo\n' \
+            "${branch}" "${repo_url}" "${key_b64}" "${repo_url}" \
             > flatpak-repo/io.github.RubCut.Paint.QT.flatpakref
           cat flatpak-repo/io.github.RubCut.Paint.QT.flatpakref
           test -s flatpak-repo/io.github.RubCut.Paint.QT.flatpakref
