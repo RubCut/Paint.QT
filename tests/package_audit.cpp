@@ -386,6 +386,23 @@ int main(int argc, char** argv)
                   QStringLiteral("the manifest pins a runtime version (%1)").arg(version));
             const QString workflow =
                 readAll(root + QStringLiteral("/.github/workflows/build.yml"));
+            // The address the flatpakref and the README give has to be the one
+            // CI publishes to. A workflow token cannot push to a different
+            // repository, so the pages branch lives here and the URL follows the
+            // repository name.
+            const QString pagesUrl = QStringLiteral("https://rubcut.github.io/Paint.QT/repo");
+            check(workflow.contains(pagesUrl),
+                  QStringLiteral("the flatpakref points at %1").arg(pagesUrl));
+            const QString readme = readAll(root + QStringLiteral("/README.md"));
+            check(readme.contains(pagesUrl),
+                  QStringLiteral("the README gives the same address as the flatpakref"));
+            // The push has to name this repository. A workflow token is scoped
+            // to its own repository, and pushing to a second one failed with
+            // "Permission to RubCut/Paint.QT-repo.git denied to github-actions".
+            // Matched on the push line, not on the string, because the reason is
+            // written in a comment right above it.
+            check(workflow.contains(QLatin1String("x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git")),
+                  QStringLiteral("the pages push targets this repository, the only one the token can write to"));
             if (!workflow.isEmpty() && !runtime.isEmpty() && !version.isEmpty()) {
                 // The workflow installs these by name, and the build fails with
                 // "Nothing matches org.kde.Sdk in remote flathub" when the two

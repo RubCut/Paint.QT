@@ -85,14 +85,14 @@ The repository is served over https and is rebuilt by CI on every push to `main`
 
 ```sh
 flatpak install --user --noninteractive \
-    https://rubcut.github.io/Paint.QT-repo/repo io.github.RubCut.Paint.QT
+    https://rubcut.github.io/Paint.QT/repo io.github.RubCut.Paint.QT
 ```
 
 GNOME Software and KDE Discover also take a `.flatpakref`, which is one URL pointing at
 the repository:
 
 ```
-https://rubcut.github.io/Paint.QT-repo/repo/io.github.RubCut.Paint.QT.flatpakref
+https://rubcut.github.io/Paint.QT/repo/io.github.RubCut.Paint.QT.flatpakref
 ```
 
 The repository is signed with one long lived key, so a key trusted for one release still
@@ -100,9 +100,9 @@ verifies the next. Its fingerprint is `15CC07DFA2F7AC0DA659E4B47C5A64187D334294`
 flatpak refuses the signature, import the public key, served next to the repository:
 
 ```sh
-gpg --import https://rubcut.github.io/Paint.QT-repo/repo/paint-qt.gpg
+gpg --import https://rubcut.github.io/Paint.QT/repo/paint-qt.gpg
 flatpak remote-add --user --gpg-key=15CC07DFA2F7AC0DA659E4B47C5A64187D334294 paintqt \
-    https://rubcut.github.io/Paint.QT-repo/repo
+    https://rubcut.github.io/Paint.QT/repo
 flatpak install --user paintqt io.github.RubCut.Paint.QT
 ```
 

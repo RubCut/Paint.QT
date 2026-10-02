@@ -519,7 +519,7 @@ jobs:
           cat > flatpak-repo/io.github.RubCut.Paint.QT.flatpakref <<EOF
           [Flatpak Repo]
           Title=Paint.QT
-          Url=https://rubcut.github.io/Paint.QT-repo/repo
+          Url=https://rubcut.github.io/Paint.QT/repo
           Branch=${branch}
           [Runtime]
           Runtime=runtime/org.kde.Platform/x86_64/6.11
@@ -582,6 +582,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          # Published to the gh-pages branch of this repository, not to a separate
+          # one. The token a workflow gets is scoped to its own repository, so
+          # pushing to RubCut/Paint.QT-repo failed with "Permission to
+          # RubCut/Paint.QT-repo.git denied to github-actions[bot]". Serving it
+          # from here needs nothing that has to be created by hand.
+          #
           # The branch is generated in full every time, so nothing is cloned: the
           # previous contents are replaced, not merged into. Cloning first and
           # then switching to an orphan branch left the step depending on
@@ -599,7 +605,7 @@ jobs:
           <body><h1>Paint.QT</h1>
           <p>Install from GNOME Software, KDE Discover or a terminal:</p>
           <pre>flatpak install --user --noninteractive \
-            https://rubcut.github.io/Paint.QT-repo/repo io.github.RubCut.Paint.QT</pre>
+            https://rubcut.github.io/Paint.QT/repo io.github.RubCut.Paint.QT</pre>
           <p>Or paste the .flatpakref into a software centre.</p></body></html>
           EOF
           git add -A
@@ -609,7 +615,7 @@ jobs:
           # and an ordinary push is rejected as a non-fast-forward. Replacing the
           # branch is the intent, since everything in it is generated.
           git push --force \
-            "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository_owner }}/Paint.QT-repo.git" \
+            "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" \
             gh-pages
 
       - uses: actions/upload-artifact@v4
