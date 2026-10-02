@@ -566,9 +566,15 @@ jobs:
           set -euo pipefail
           branch=$(find flatpak-repo/refs/heads -type f -printf '%f\n' | head -1)
           test -n "${branch}"
-          echo "bundling branch ${branch}"
-          flatpak build-bundle flatpak-repo paint-qt.flatpak "${branch}"
+          # LOCATION FILENAME NAME [BRANCH], four arguments. Three were passed,
+          # so the branch landed in the NAME slot and flatpak rejected it with
+          # "'stable' is not a valid name: Names must contain at least 2 periods".
+          # The name is the application id; the branch is the ref's leaf.
+          echo "bundling io.github.RubCut.Paint.QT branch ${branch}"
+          flatpak build-bundle flatpak-repo paint-qt.flatpak \
+            io.github.RubCut.Paint.QT "${branch}"
           ls -la paint-qt.flatpak
+          test -s paint-qt.flatpak
 
       - name: Publish to GitHub Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
