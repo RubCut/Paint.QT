@@ -192,9 +192,34 @@ jobs:
           cmake --install build --prefix /tmp/appimage-root
           sudo apt-get install -y wget desktop-file-utils libfuse2t64
 
-          wget -q -O linuxdeploy.AppImage \
-            https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-          chmod +x linuxdeploy.AppImage
+          # All three tools below come from a branch named "continuous". A URL
+          # that points at a branch is not a fixed thing: the file behind it can
+          # be replaced without the URL changing at all. Without a checksum the
+          # released AppImage is built from whatever those links happened to serve
+          # on the day it ran, and nobody finds out until someone compares builds.
+          #
+          # The sums are pinned so an upstream replacement fails the job loudly.
+          # To move them on purpose, download each file, run sha256sum on it, and
+          # put the new sum here. That is the whole procedure.
+          fetch() {
+              local url="$1" out="$2" want="$3" got
+              wget -q -O "$out" "$url"
+              got="$(sha256sum "$out" | cut -d' ' -f1)"
+              if [ "$got" != "$want" ]; then
+                  echo "checksum mismatch for ${out}" >&2
+                  echo "  expected: ${want}" >&2
+                  echo "  got:      ${got}" >&2
+                  echo "The file at ${url} is not the one this job was pinned to." >&2
+                  echo "If the move was meant, update the sum in this workflow." >&2
+                  exit 1
+              fi
+              chmod +x "$out"
+          }
+
+          fetch \
+            https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage \
+            linuxdeploy.AppImage \
+            8aea8da0f7f7039d2a2cecb14657d752a222a5e1d3825caeef186c82f751cdd1
 
           # The application has to be found under a standard prefix.
           export APPDIR=/tmp/appdir
@@ -213,9 +238,10 @@ jobs:
 
           # Qt's own plugin must be deployed or the image will not find its
           # platform plugin at run time.
-          wget -q -O linuxdeploy-plugin-qt.AppImage \
-            https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
-          chmod +x linuxdeploy-plugin-qt.AppImage
+          fetch \
+            https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage \
+            linuxdeploy-plugin-qt.AppImage \
+            cfc1055b2b9dbc08412b579f20990b7b41a17b61beaa5847dc9477c96c9e9617
           ./linuxdeploy-plugin-qt.AppImage --appdir="${APPDIR}"
 
           # Ask the image to run its own AppRun, so the bundled Qt is found.
@@ -240,9 +266,10 @@ jobs:
           # points at, and two desktop files at the top of the tree is one too
           # many. The copy inside usr/share is renamed to match for the same
           # reason.
-          wget -q -O appimagetool \
-            https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
-          chmod +x appimagetool
+          fetch \
+            https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage \
+            appimagetool \
+            b90f4a8b18967545fda78a445b27680a1642f1ef9488ced28b65398f2be7add2
           # Named after the application id, which is what the desktop entry's
           # Icon= asks for and what the metainfo's launchable names. Copying them
           # in under the binary name left the image describing files it does not

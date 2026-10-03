@@ -106,8 +106,13 @@ Ctrl+Z.
 **The system clipboard**, both ways: copy an image in a browser and paste it here, or
 copy a selection here and paste it into anything that takes an image.
 
-**`.pdn` files open and save losslessly**, so a document moves between the two editors
-in either direction.
+**`.pdn` files save and reopen with every layer intact**, so a document moves between
+versions of Paint.QT in either direction.
+
+Paint.NET's own files are a different format and are not read here. Paint.NET writes a
+binary container that begins with the four bytes `PDN3`; Paint.QT writes a JSON document.
+The `.pdn` extension is the only thing the two share. A document has to leave Paint.QT as
+a PNG, or as a `.pdn` that only Paint.QT will open again.
 
 **Freehand strokes are smoothed** along a Catmull-Rom spline through the mouse samples,
 so a fast drag comes out smooth instead of as visible chords.
