@@ -590,11 +590,19 @@ private:
         }
     }
 
-    int takePendingNulls()
+    /// Consumes one slot from a run of nulls a file declared, and reports whether
+    /// this slot was part of it.
+    ///
+    /// The run is one record that stands for several members, so it has to be spent
+    /// a slot at a time. Clearing it in one go would leave the members after the run
+    /// being read as though they were values, and the stream would be out of step
+    /// from that point on.
+    bool skipPendingNull()
     {
-        const int n = m_pendingNulls;
-        m_pendingNulls = 0;
-        return n;
+        if (m_pendingNulls <= 0)
+            return false;
+        --m_pendingNulls;
+        return true;
     }
 
     ClassInfo readClassInfo()
@@ -663,7 +671,7 @@ private:
         v.names = ci ? ci->members : QStringList();
 
         for (int i = 0; i < v.names.size(); ++i) {
-            if (i < takePendingNulls())
+            if (skipPendingNull())
                 continue;
 
             quint8 type = BinObject;
@@ -720,8 +728,30 @@ private:
         }
         const quint8 binaryType = u8();
         int64_t prim = -1;
-        if (binaryType == BinPrimitive)
+        // The element type carries the same extra information a member's type does,
+        // and the array records hit it just as often. An array of a system class
+        // names the class in a string right here, before any element.
+        switch (binaryType) {
+        case BinPrimitive:
+        case BinPrimitiveArray:
             prim = qint64(u8());
+            break;
+        case BinSystemClass:
+            (void)text();
+            break;
+        case BinClass:
+            (void)text();
+            (void)leI32();
+            break;
+        case BinString:
+        case BinObject:
+        case BinObjectArray:
+        case BinStringArray:
+            break;
+        default:
+            fail(QObject::tr("an array in the file has an element type this program does not recognise"));
+            return Value();
+        }
         if (m_failed)
             return Value();
 
@@ -741,7 +771,7 @@ private:
         v.kind = Value::Kind::List;
         v.id = id;
         for (int i = 0; i < count; ++i) {
-            if (i < takePendingNulls()) {
+            if (skipPendingNull()) {
                 v.items << Value();
                 continue;
             }
