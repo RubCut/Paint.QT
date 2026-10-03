@@ -72,6 +72,13 @@ sudo dnf install ./paint-qt-*.x86_64.rpm    # Fedora, openSUSE
 ./install.sh --flatpak    # into the Flatpak, no password needed
 ```
 
+**macOS** — Homebrew:
+
+```sh
+brew tap RubCut/paint-qt
+brew install --cask paint-qt
+```
+
 **Nothing at all** — one file, no installation:
 
 ```sh
