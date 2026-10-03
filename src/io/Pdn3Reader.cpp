@@ -4,6 +4,7 @@
 #include "core/Layer.h"
 #include "core/Surface.h"
 
+#include <QFile>
 #include <QHash>
 #include <QStringList>
 #include <QtEndian>
@@ -1092,7 +1093,20 @@ bool Pdn3Reader::looksLikePaintNet(const QByteArray& data)
     return data.size() >= 4 && data.startsWith("PDN3");
 }
 
-Document* Pdn3Reader::load(const QByteArray& data, QString* error)
+Document* Pdn3Reader::load(const QString& path, QString* error)
+{
+    QFile f(path);
+    if (!f.open(QIODevice::ReadOnly)) {
+        if (error)
+            *error = f.errorString();
+        return nullptr;
+    }
+    const QByteArray data = f.readAll();
+    f.close();
+    return loadFromData(data, error);
+}
+
+Document* Pdn3Reader::loadFromData(const QByteArray& data, QString* error)
 {
     if (!looksLikePaintNet(data)) {
         if (error)

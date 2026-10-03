@@ -32,8 +32,11 @@ public:
     /// tell the two formats apart before either is parsed.
     static bool looksLikePaintNet(const QByteArray& data);
 
-    /// Reads a Paint.NET file. Returns nullptr and fills error on failure.
-    static Document* load(const QByteArray& data, QString* error = nullptr);
+    /// Reads a Paint.NET file from disk. Returns nullptr and fills error on failure.
+    static Document* load(const QString& path, QString* error = nullptr);
+
+    /// The same, for bytes already in hand.
+    static Document* loadFromData(const QByteArray& data, QString* error = nullptr);
 
     /// Turns one layer's stored bytes into a Surface.
     ///

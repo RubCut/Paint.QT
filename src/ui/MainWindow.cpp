@@ -10,6 +10,7 @@
 #include "core/Renderer.h"
 #include "effects/Effects.h"
 #include "io/FileFormats.h"
+#include "io/Pdn3Reader.h"
 #include "io/PdqFile.h"
 #include <type_traits>
 
@@ -1069,9 +1070,12 @@ bool MainWindow::openFile(const QString& path)
         return false;
     }
     const QString ext = QFileInfo(path).suffix().toLower();
-    if (ext == QLatin1String("pdq")) {
+    if (ext == QLatin1String("pdq") || ext == QLatin1String("pdn")) {
         QString err;
-        Document* doc = PdqFile::load(path, &err);
+        // Two project formats share the File menu. .pdq is ours; .pdn is Paint.NET's,
+        // which is a different format entirely and is read, never written.
+        Document* doc = ext == QLatin1String("pdq") ? PdqFile::load(path, &err)
+                                                     : Pdn3Reader::load(path, &err);
         if (!doc) {
             QMessageBox::warning(this, tr("Open"), err);
             return false;

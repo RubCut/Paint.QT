@@ -30,6 +30,9 @@ QVector<FileFormat> FileFormats::all()
             f.append(ff);
         };
         add("Paint.QT Project", { "pdq" }, true, false, true, true, FileFormat::Kind::Project);
+        // Read only: this program cannot write Paint.NET's format, so it is never
+        // offered as a save target.
+        add("Paint.NET Project", { "pdn" }, true, false, true, false, FileFormat::Kind::Project);
         add("PNG - Portable Network Graphics", { "png" }, true, false, true, true);
         add("JPEG - Joint Photographic Experts Group", { "jpg", "jpeg", "jpe", "jfif" }, false, true,
             true, true);

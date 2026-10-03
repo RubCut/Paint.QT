@@ -89,7 +89,10 @@ add_library(pnq_core STATIC
   src/resources/Palettes.h
 )
 target_include_directories(pnq_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(pnq_core PUBLIC Qt6::Core Qt6::Gui)
+# zlib is used only to inflate the pixel blocks in Paint.NET project files, which
+# are gzipped. Qt links it privately, so it has to be named here as well.
+find_package(ZLIB REQUIRED)
+target_link_libraries(pnq_core PUBLIC Qt6::Core Qt6::Gui ZLIB::ZLIB)
 set_target_properties(pnq_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # --------------------------------------------------------------------------
