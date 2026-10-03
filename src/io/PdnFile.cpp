@@ -204,11 +204,25 @@ Selection PdnFile::decodeSelectionMask(const QByteArray& data, int w, int h, QSt
 
 Document* PdnFile::loadFromData(const QByteArray& data, QString* error)
 {
+    // Paint.NET writes a different file under the same extension: a binary
+    // container that starts with "PDN3". Recognised here so the message says
+    // what is actually wrong. Handing those bytes to a JSON parser produces
+    // "illegal number", which tells a person nothing about the file they chose.
+    if (data.startsWith("PDN3")) {
+        if (error) {
+            *error = QObject::tr(
+                "This is a file saved by Paint.NET. Paint.QT uses its own project "
+                "format and cannot read Paint.NET's, even though both use the .pdn "
+                "extension. Open the image in Paint.NET and export it as PNG.");
+        }
+        return nullptr;
+    }
+
     QJsonParseError err{};
     const QJsonDocument jd = QJsonDocument::fromJson(data, &err);
     if (err.error != QJsonParseError::NoError) {
         if (error)
-            *error = err.errorString();
+            *error = QObject::tr("This file could not be read: %1").arg(err.errorString());
         return nullptr;
     }
     if (!jd.isObject()) {
