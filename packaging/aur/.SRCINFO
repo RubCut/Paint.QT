@@ -12,6 +12,6 @@ pkgbase = paint-qt
 	depends = qt6-svg
 	optdepends = dark-theme: follow the system colour scheme, or pick a theme from the View menu
 	source = paint-qt-1.0.3.tar.gz::https://github.com/RubCut/Paint.QT/archive/refs/tags/v1.0.3.tar.gz
-	sha256sums = 2297d9ddd7660be24cb077fe148ab35f417baae7dee41ea1463375c3b04e422d
+	sha256sums = 59897edbb80da78909e40a7b72adb7327b12be75efc463cff85c5aa803fefe52
 
 pkgname = paint-qt

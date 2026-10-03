@@ -22,7 +22,7 @@ optdepends=('dark-theme: follow the system colour scheme, or pick a theme from t
 # it comes from. Its checksum is of that archive and has to be replaced on every
 # release, which is what `updpkgsums` does.
 source=("$pkgname-$pkgver.tar.gz::https://github.com/RubCut/Paint.QT/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('2297d9ddd7660be24cb077fe148ab35f417baae7dee41ea1463375c3b04e422d')
+sha256sums=('59897edbb80da78909e40a7b72adb7327b12be75efc463cff85c5aa803fefe52')
 
 # makepkg runs every step with the working directory set to the package
 # directory, which is where the build tree has to live. The source tree is
