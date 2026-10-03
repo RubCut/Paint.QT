@@ -53,6 +53,10 @@ Two forms of this do not work, and both fail with a message that reads like a ba
 - The same command wrapped over two lines with a trailing backslash. Pasted as one line
   the backslash is an ordinary character, and the argument arrives as `\ https://…`.
 
+If you would rather not read a command at all, the same repository has a
+[page of its own](https://rubcut.github.io/Paint.QT/), with the installer and the
+signing key linked from it.
+
 **Packages** — every [release](https://github.com/RubCut/Paint.QT/releases) carries a
 `.deb`, an `.rpm`, the source, a macOS bundle, an AppImage and a single-file Flatpak:
 
