@@ -84,6 +84,27 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="1.0.3" date="2026-10-03">
+      <description>
+        <p>Paint.NET project files are read, with every layer intact, and pressing Open
+        no longer closes the program. This editor's own project format moves to the .pdq
+        extension, which frees .pdn to mean Paint.NET's format and nothing else.</p>
+        <ul>
+          <li>Paint.NET .pdn files open: every layer, with its name, visibility,
+          background flag, opacity, blend mode and pixels. Checked layer by layer against
+          the reference reader on ten files covering one to fourteen layers, all fourteen
+          blend modes, and Paint.NET 3.510 as well as 4.21: no field differs and no
+          pixel differs</li>
+          <li>The Open button no longer closes the program. openFilters was calling
+          itself until the stack ran out, before the file chooser was even shown</li>
+          <li>The project format is .pdq. Paint.NET uses the same .pdn extension for a
+          different format, so one extension meant two formats looking identical in a
+          file chooser</li>
+          <li>A file from Paint.NET that cannot be read says so in words, instead of
+          the JSON parser's "illegal number"</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.2" date="2026-10-03">
       <description>
         <p>A review of the code found four real problems, all now fixed. The

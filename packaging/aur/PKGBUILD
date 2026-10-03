@@ -9,7 +9,7 @@
 # and makepkg will take pkgver() from the tag it checks out.
 
 pkgname=paint-qt
-pkgver=1.0.2
+pkgver=1.0.3
 pkgrel=1
 pkgdesc="A raster image editor for Linux desktops, with the tool set of Paint.NET"
 arch=('x86_64' 'aarch64')

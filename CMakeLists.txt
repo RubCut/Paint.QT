@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(PaintNetQt VERSION 1.0.2 LANGUAGES CXX)
+project(PaintNetQt VERSION 1.0.3 LANGUAGES CXX)
 
 # One place for the facts every package format needs.
 set(PNQ_APP_ID "io.github.RubCut.Paint.QT")
