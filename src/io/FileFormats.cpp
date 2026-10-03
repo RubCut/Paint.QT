@@ -75,8 +75,22 @@ QStringList FileFormats::openFilters(const QString& allFilter)
             continue;
         filters << QStringLiteral("%1 (%2)").arg(f.name, pats.join(QLatin1Char(' ')));
     }
-    filters << QStringLiteral("All image files (%1)").arg(openFilters().isEmpty() ? QString()
-                                                                                : QString());
+    // The catch-all entry is built from the patterns gathered above, not by
+    // calling openFilters() again. That call was here and it recursed into this
+    // same function until the stack ran out, which is why pressing Open crashed
+    // the program: the dialog never got as far as being shown.
+    QStringList every;
+    for (const FileFormat& f : all()) {
+        if (!f.canRead)
+            continue;
+        for (const QString& e : f.extensions) {
+            const QString pattern = QStringLiteral("*.") + e;
+            if (!every.contains(pattern))
+                every << pattern;
+        }
+    }
+    if (!every.isEmpty())
+        filters << QStringLiteral("All image files (%1)").arg(every.join(QLatin1Char(' ')));
     if (!allFilter.isNull())
         filters << allFilter;
     return filters;
