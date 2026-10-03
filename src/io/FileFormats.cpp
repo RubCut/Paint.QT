@@ -243,14 +243,29 @@ bool FileFormats::saveMultiPage(const QVector<QImage>& pages, const QString& pat
     return saveImage(pages.first(), path, options, error);
 }
 
-QVector<QImage> FileFormats::loadTiffPages(const QString& path)
+bool FileFormats::sizeAllowed(const QSize& size)
+{
+    return size.isValid() && !size.isEmpty() && size.width() <= MaxDimension
+           && size.height() <= MaxDimension
+           && qint64(size.width()) * qint64(size.height()) <= MaxPixels;
+}
+
+QVector<QImage> FileFormats::loadTiffPages(const QString& path, QString* error)
 {
     QVector<QImage> pages;
     QImageReader reader(path);
     const int count = reader.imageCount();
-    for (int i = 0; i < count; ++i) {
+    // imageCount() is a number out of the file. Left alone it is how many full
+    // sized images this loop will hold in memory at once.
+    const int pagesToRead = count > MaxFrames ? MaxFrames : count;
+    for (int i = 0; i < pagesToRead; ++i) {
         if (!reader.jumpToNextImage())
             break;
+        if (!sizeAllowed(reader.size())) {
+            if (error)
+                *error = QObject::tr("A page in this file is larger than this program will open");
+            return QVector<QImage>();
+        }
         QImage img = reader.read();
         if (img.isNull())
             break;
@@ -263,6 +278,14 @@ QImage FileFormats::load(const QString& path, QString* error)
 {
     QImageReader reader(path);
     reader.setAutoTransform(true);
+    // The size is in the header and costs nothing to ask for. Reading first and
+    // looking afterwards is the wrong order: the memory is already gone.
+    const QSize declared = reader.size();
+    if (declared.isValid() && !declared.isEmpty() && !sizeAllowed(declared)) {
+        if (error)
+            *error = QObject::tr("This image is larger than this program will open");
+        return QImage();
+    }
     QImage img = reader.read();
     if (img.isNull() && error)
         *error = reader.errorString();
@@ -277,12 +300,22 @@ QVector<QImage> FileFormats::loadAllFrames(const QString& path, QString* error)
 {
     const QString ext = QFileInfo(path).suffix().toLower();
     if (ext == QLatin1String("tif") || ext == QLatin1String("tiff"))
-        return loadTiffPages(path);
+        return loadTiffPages(path, error);
     QImageReader reader(path);
     reader.setAutoTransform(true);
     QVector<QImage> frames;
     const int count = reader.imageCount();
+    if (count > MaxFrames) {
+        if (error)
+            *error = QObject::tr("This file has more frames than this program will open");
+        return QVector<QImage>();
+    }
     if (count <= 1) {
+        if (!sizeAllowed(reader.size())) {
+            if (error)
+                *error = QObject::tr("This image is larger than this program will open");
+            return QVector<QImage>();
+        }
         QImage img = reader.read();
         if (img.isNull() && error)
             *error = reader.errorString();
@@ -293,6 +326,11 @@ QVector<QImage> FileFormats::loadAllFrames(const QString& path, QString* error)
     for (int i = 0; i < count; ++i) {
         if (i > 0 && !reader.jumpToNextImage())
             break;
+        if (!sizeAllowed(reader.size())) {
+            if (error)
+                *error = QObject::tr("A frame in this file is larger than this program will open");
+            return QVector<QImage>();
+        }
         QImage img = reader.read();
         if (img.isNull())
             break;
