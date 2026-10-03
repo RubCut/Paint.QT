@@ -9,13 +9,13 @@
 
 namespace pnq {
 
-/// Reads and writes the Paint.NET project format (.pdn, "magic":"pdn", v3).
+/// Reads and writes this program's own project format (.pdq, "magic":"pdq", v3).
 ///
-/// This is not Paint.NET's own file format. Paint.NET writes a binary container
-/// that starts with the four bytes "PDN3"; this writes a JSON document. Files
-/// do not move between the two programs, in either direction, and the extension
-/// is the only thing they share.
-class PdnFile
+/// Paint.NET has its own project format, also spelled .pdn, which is a different
+/// thing entirely: a binary container starting with the four bytes "PDN3". This
+/// writes JSON under .pdq. The two formats are unrelated and neither program
+/// reads the other's.
+class PdqFile
 {
 public:
     static constexpr int CurrentVersion = 3;
@@ -32,7 +32,7 @@ public:
     static constexpr int MaxLayers = 256;
 
     static bool save(const Document& doc, const QString& path, QString* error = nullptr);
-    /// Creates a new document from a .pdn file. Returns nullptr on failure.
+    /// Creates a new document from a .pdq file. Returns nullptr on failure.
     static Document* load(const QString& path, QString* error = nullptr);
     static Document* loadFromData(const QByteArray& data, QString* error = nullptr);
 

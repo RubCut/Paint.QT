@@ -8,7 +8,7 @@ set(PNQ_ISSUES "https://github.com/RubCut/Paint.QT/issues")
 set(PNQ_LICENSE "GPL-3.0-or-later")
 set(PNQ_SUMMARY "A raster image editor for Linux desktops, with the tool set of Paint.NET")
 set(PNQ_DESCRIPTION
-    "Paint.QT is a raster image editor written in C++20 on Qt 6. The tools and the palette\nlayout are the ones people know from Paint.NET, and so are two further things: it reads and\nwrites the .pdn format, and its history treats one stroke as one undo step. It contains no\nPaint.NET code. The window draws its own light chrome, so it looks the same on every desktop.")
+    "Paint.QT is a raster image editor written in C++20 on Qt 6. The tools and the palette\nlayout are the ones people know from Paint.NET, and so are two further things: it reads and\nwrites the .pdq project format, and its history treats one stroke as one undo step. It\ncontains no Paint.NET code. The window draws its own light chrome, so it looks the same on\nevery desktop.")
 set(PNQ_MAINTAINER "Paint.QT contributors")
 set(PNQ_PACKAGE_NAME "paint-qt")
 set(PNQ_DEB_DEPENDS "libqt6core6t64, libqt6gui6, libqt6widgets6, libqt6svg6")
@@ -65,7 +65,8 @@ add_library(pnq_core STATIC
   src/effects/NoiseEffects.cpp
   src/effects/StylizeEffects.cpp
   src/io/FileFormats.cpp
-  src/io/PdnFile.cpp
+  src/io/Pdn3Reader.cpp
+  src/io/PdqFile.cpp
   src/resources/Icons.cpp
   src/resources/Palettes.cpp
   src/core/BlendMode.h
@@ -82,7 +83,8 @@ add_library(pnq_core STATIC
   src/core/Surface.h
   src/effects/Effects.h
   src/io/FileFormats.h
-  src/io/PdnFile.h
+  src/io/Pdn3Reader.h
+  src/io/PdqFile.h
   src/resources/Icons.h
   src/resources/Palettes.h
 )

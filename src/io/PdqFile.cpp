@@ -1,4 +1,4 @@
-#include "io/PdnFile.h"
+#include "io/PdqFile.h"
 
 #include <QFile>
 #include <QJsonArray>
@@ -23,8 +23,8 @@ qint64 pixelBytes(int w, int h)
 /// Whether a canvas of this size is one this program will attempt at all.
 bool sizeAllowed(int w, int h)
 {
-    return w > 0 && h > 0 && w <= PdnFile::MaxDimension && h <= PdnFile::MaxDimension
-           && qint64(w) * h <= PdnFile::MaxPixels;
+    return w > 0 && h > 0 && w <= PdqFile::MaxDimension && h <= PdqFile::MaxDimension
+           && qint64(w) * h <= PdqFile::MaxPixels;
 }
 
 /// Decompresses a layer, but only after checking what it claims to expand to.
@@ -37,7 +37,7 @@ bool sizeAllowed(int w, int h)
 QByteArray checkedUncompress(const QByteArray& data, qint64 expected, QString* error,
                              const QString& what)
 {
-    if (expected < 0 || expected > PdnFile::MaxPixels * 4) {
+    if (expected < 0 || expected > PdqFile::MaxPixels * 4) {
         if (error)
             *error = QObject::tr("%1 is larger than this program will open").arg(what);
         return QByteArray();
@@ -72,7 +72,7 @@ QByteArray checkedUncompress(const QByteArray& data, qint64 expected, QString* e
 
 } // namespace
 
-QByteArray PdnFile::encodeLayerPixels(const Surface& s)
+QByteArray PdqFile::encodeLayerPixels(const Surface& s)
 {
     // Paint.NET stores raw scanlines, pixel order B,G,R,A for the "simple" case.
     const int w = s.width(), h = s.height();
@@ -92,7 +92,7 @@ QByteArray PdnFile::encodeLayerPixels(const Surface& s)
     return qCompress(raw, 9);
 }
 
-Surface PdnFile::decodeLayerPixels(const QByteArray& data, int w, int h, bool simple, QString* error)
+Surface PdqFile::decodeLayerPixels(const QByteArray& data, int w, int h, bool simple, QString* error)
 {
     if (!sizeAllowed(w, h)) {
         if (error)
@@ -121,10 +121,10 @@ Surface PdnFile::decodeLayerPixels(const QByteArray& data, int w, int h, bool si
     return s;
 }
 
-QJsonObject PdnFile::documentToJson(const Document& doc)
+QJsonObject PdqFile::documentToJson(const Document& doc)
 {
     QJsonObject root;
-    root[QStringLiteral("magic")] = QStringLiteral("pdn");
+    root[QStringLiteral("magic")] = QStringLiteral("pdq");
     root[QStringLiteral("version")] = CurrentVersion;
     root[QStringLiteral("width")] = doc.width();
     root[QStringLiteral("height")] = doc.height();
@@ -147,7 +147,7 @@ QJsonObject PdnFile::documentToJson(const Document& doc)
     return root;
 }
 
-bool PdnFile::save(const Document& doc, const QString& path, QString* error)
+bool PdqFile::save(const Document& doc, const QString& path, QString* error)
 {
     if (doc.width() <= 0 || doc.height() <= 0) {
         if (error)
@@ -173,7 +173,7 @@ bool PdnFile::save(const Document& doc, const QString& path, QString* error)
     return true;
 }
 
-QByteArray PdnFile::encodeSelectionMask(const Selection& sel)
+QByteArray PdqFile::encodeSelectionMask(const Selection& sel)
 {
     if (sel.isNull())
         return QByteArray();
@@ -181,7 +181,7 @@ QByteArray PdnFile::encodeSelectionMask(const Selection& sel)
     return qCompress(QByteArray(reinterpret_cast<const char*>(m.constBits()), m.sizeInBytes()), 9);
 }
 
-Selection PdnFile::decodeSelectionMask(const QByteArray& data, int w, int h, QString* error)
+Selection PdqFile::decodeSelectionMask(const QByteArray& data, int w, int h, QString* error)
 {
     if (!sizeAllowed(w, h)) {
         if (error)
@@ -202,7 +202,7 @@ Selection PdnFile::decodeSelectionMask(const QByteArray& data, int w, int h, QSt
     return s;
 }
 
-Document* PdnFile::loadFromData(const QByteArray& data, QString* error)
+Document* PdqFile::loadFromData(const QByteArray& data, QString* error)
 {
     // Paint.NET writes a different file under the same extension: a binary
     // container that starts with "PDN3". Recognised here so the message says
@@ -211,9 +211,9 @@ Document* PdnFile::loadFromData(const QByteArray& data, QString* error)
     if (data.startsWith("PDN3")) {
         if (error) {
             *error = QObject::tr(
-                "This is a file saved by Paint.NET. Paint.QT uses its own project "
-                "format and cannot read Paint.NET's, even though both use the .pdn "
-                "extension. Open the image in Paint.NET and export it as PNG.");
+                "This is a file saved by Paint.NET. Paint.QT keeps its own project "
+                "format under the .pdq extension and cannot read Paint.NET's .pdn "
+                "yet. Open the image in Paint.NET and export it as PNG.");
         }
         return nullptr;
     }
@@ -231,7 +231,7 @@ Document* PdnFile::loadFromData(const QByteArray& data, QString* error)
         return nullptr;
     }
     const QJsonObject root = jd.object();
-    if (root.value(QStringLiteral("magic")).toString() != QLatin1String("pdn")) {
+    if (root.value(QStringLiteral("magic")).toString() != QLatin1String("pdq")) {
         if (error)
             *error = QObject::tr("Not a Paint.QT file");
         return nullptr;
@@ -287,7 +287,7 @@ Document* PdnFile::loadFromData(const QByteArray& data, QString* error)
     return doc;
 }
 
-Document* PdnFile::load(const QString& path, QString* error)
+Document* PdqFile::load(const QString& path, QString* error)
 {
     QFile f(path);
     if (!f.open(QIODevice::ReadOnly)) {
@@ -298,7 +298,7 @@ Document* PdnFile::load(const QString& path, QString* error)
     return loadFromData(f.readAll(), error);
 }
 
-bool PdnFile::saveSelection(const Selection& sel, const QString& path, QString* error)
+bool PdqFile::saveSelection(const Selection& sel, const QString& path, QString* error)
 {
     if (sel.isNull()) {
         if (error)
@@ -306,7 +306,7 @@ bool PdnFile::saveSelection(const Selection& sel, const QString& path, QString* 
         return false;
     }
     QJsonObject root;
-    root[QStringLiteral("magic")] = QStringLiteral("pdn");
+    root[QStringLiteral("magic")] = QStringLiteral("pdq");
     root[QStringLiteral("version")] = CurrentVersion;
     root[QStringLiteral("width")] = sel.width();
     root[QStringLiteral("height")] = sel.height();
@@ -321,7 +321,7 @@ bool PdnFile::saveSelection(const Selection& sel, const QString& path, QString* 
     return f.commit();
 }
 
-bool PdnFile::loadSelection(const QString& path, Selection* out, QString* error)
+bool PdqFile::loadSelection(const QString& path, Selection* out, QString* error)
 {
     QFile f(path);
     if (!f.open(QIODevice::ReadOnly)) {

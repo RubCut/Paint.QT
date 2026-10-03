@@ -34,6 +34,6 @@ body:
     id: notes
     attributes:
       label: Anything else
-      description: How you would expect it to behave, which tools it touches, what it affects in the .pdn file.
+      description: How you would expect it to behave, which tools it touches, what it affects in the .pdq file.
     validations:
       required: false

@@ -12,7 +12,7 @@
 #include "core/Selection.h"
 #include "core/Surface.h"
 #include "effects/Effects.h"
-#include "io/PdnFile.h"
+#include "io/PdqFile.h"
 #include "resources/Palettes.h"
 
 using namespace pnq;
@@ -543,8 +543,8 @@ private slots:
             QVERIFY(!p.name.isEmpty());
     }
 
-    // ------------------------------------------------------------- pdn
-    void pdn_roundtrip()
+    // ------------------------------------------------------------ pdq
+    void pdq_roundtrip()
     {
         Document doc(8, 8);
         Layer* l = doc.addLayer(QStringLiteral("Layer A"));
@@ -553,11 +553,11 @@ private slots:
         l2->surface().fill(rgbPixel(0, 255, 0));
         l2->setOpacity(128);
         l2->setBlendMode(BlendMode::Multiply);
-        doc.setFilePath(QStringLiteral("/tmp/test.pdn"));
+        doc.setFilePath(QStringLiteral("/tmp/test.pdq"));
 
         QString err;
-        QVERIFY2(PdnFile::save(doc, QStringLiteral("/tmp/pnq_test.pdn"), &err), qPrintable(err));
-        Document* loaded = PdnFile::load(QStringLiteral("/tmp/pnq_test.pdn"), &err);
+        QVERIFY2(PdqFile::save(doc, QStringLiteral("/tmp/pnq_test.pdq"), &err), qPrintable(err));
+        Document* loaded = PdqFile::load(QStringLiteral("/tmp/pnq_test.pdq"), &err);
         QVERIFY2(loaded != nullptr, qPrintable(err));
         QCOMPARE(loaded->width(), 8);
         QCOMPARE(loaded->height(), 8);
@@ -570,10 +570,10 @@ private slots:
         delete loaded;
     }
 
-    void pdn_rejects_garbage()
+    void pdq_rejects_garbage()
     {
         QString err;
-        QCOMPARE(PdnFile::load(QStringLiteral("/tmp/definitely_missing.pdn"), &err), nullptr);
+        QCOMPARE(PdqFile::load(QStringLiteral("/tmp/definitely_missing.pdq"), &err), nullptr);
     }
 };
 

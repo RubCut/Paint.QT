@@ -61,7 +61,7 @@ public:
     /// over whatever the file says, so without a count limit the ceiling is a
     /// per page number rather than a limit on the whole file.
     ///
-    /// These match the limits in PdnFile, so one canvas is one canvas whichever
+    /// These match the limits in PdqFile, so one canvas is one canvas whichever
     /// loader reads it.
     static constexpr int MaxDimension = 30000;
     static constexpr qint64 MaxPixels = 80'000'000;

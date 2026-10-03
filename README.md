@@ -8,11 +8,11 @@
 [![Release](https://img.shields.io/github/v/release/RubCut/Paint.QT?label=release)](https://github.com/RubCut/Paint.QT/releases/latest)
 [![Licence](https://img.shields.io/badge/licence-GPL--3.0--or--later-blue.svg)](LICENSE)
 
-Qt 6 · C++20 · GPL-3.0-or-later · Linux and the BSDs · `.pdn`
+Qt 6 · C++20 · GPL-3.0-or-later · Linux and the BSDs · `.pdq`
 
 The tool set and the palette layout are the ones people know from
 [Paint.NET](https://www.getpaint.net/), and so are two further things: it reads and
-writes the `.pdn` format, and its history treats one stroke as one undo step. Nothing
+writes the `.pdq` format, and its history treats one stroke as one undo step. Nothing
 here comes from Paint.NET's code.
 
 ## Screenshots
@@ -106,13 +106,14 @@ Ctrl+Z.
 **The system clipboard**, both ways: copy an image in a browser and paste it here, or
 copy a selection here and paste it into anything that takes an image.
 
-**`.pdn` files save and reopen with every layer intact**, so a document moves between
+**`.pdq` files save and reopen with every layer intact**, so a document moves between
 versions of Paint.QT in either direction.
 
-Paint.NET's own files are a different format and are not read here. Paint.NET writes a
-binary container that begins with the four bytes `PDN3`; Paint.QT writes a JSON document.
-The `.pdn` extension is the only thing the two share. A document has to leave Paint.QT as
-a PNG, or as a `.pdn` that only Paint.QT will open again.
+`.pdq` is this program's own project format, and it is JSON. Paint.NET has a different
+project format that is also spelled `.pdn`: a binary container that begins with the four
+bytes `PDN3`. The two are unrelated, and neither program reads the other's. A `.pdn`
+saved by Paint.NET is recognised and refused with an explanation rather than left to
+fail as a broken file. A document leaves Paint.QT as a `.pdq` or as a PNG.
 
 **Freehand strokes are smoothed** along a Catmull-Rom spline through the mouse samples,
 so a fast drag comes out smooth instead of as visible chords.
@@ -148,7 +149,7 @@ cd build && ctest --output-on-failure
 | --- | --- |
 | `core_tests` | Document, history, selections, image maths |
 | `gui_smoke` | The real window: layout, palettes, clipboard, zoom, undo |
-| `drag_paint` | A stroke through real Qt mouse events, then undo, redo and a `.pdn` round trip |
+| `drag_paint` | A stroke through real Qt mouse events, then undo, redo and a `.pdq` round trip |
 | `tool_audit` | All 28 tools driven with real mouse events; each one has to change pixels |
 | `icons` | Every tool and command has its own artwork, and the mark exists at every size |
 | `packages` | Every file the packaging reads, checked before a release nobody looked at |

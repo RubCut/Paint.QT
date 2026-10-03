@@ -10,7 +10,7 @@
 #include "core/Renderer.h"
 #include "effects/Effects.h"
 #include "io/FileFormats.h"
-#include "io/PdnFile.h"
+#include "io/PdqFile.h"
 #include <type_traits>
 
 #include "resources/Icons.h"
@@ -1069,9 +1069,9 @@ bool MainWindow::openFile(const QString& path)
         return false;
     }
     const QString ext = QFileInfo(path).suffix().toLower();
-    if (ext == QLatin1String("pdn")) {
+    if (ext == QLatin1String("pdq")) {
         QString err;
-        Document* doc = PdnFile::load(path, &err);
+        Document* doc = PdqFile::load(path, &err);
         if (!doc) {
             QMessageBox::warning(this, tr("Open"), err);
             return false;
@@ -1176,7 +1176,7 @@ bool MainWindow::save()
     if (!m_doc)
         return false;
     if (m_doc->filePath().isEmpty()
-        || QFileInfo(m_doc->filePath()).suffix().toLower() != QLatin1String("pdn"))
+        || QFileInfo(m_doc->filePath()).suffix().toLower() != QLatin1String("pdq"))
         return saveAs();
     return saveAs(); // Everything is always written through saveAs to keep the format honest.
 }
@@ -1204,9 +1204,9 @@ bool MainWindow::saveAs()
     }
     m_lastDir = QFileInfo(path).absolutePath();
 
-    if (QFileInfo(path).suffix().toLower() == QLatin1String("pdn")) {
+    if (QFileInfo(path).suffix().toLower() == QLatin1String("pdq")) {
         QString err;
-        if (!PdnFile::save(*m_doc, path, &err)) {
+        if (!PdqFile::save(*m_doc, path, &err)) {
             QMessageBox::warning(this, tr("Save"), err);
             return false;
         }
@@ -1303,11 +1303,11 @@ bool MainWindow::saveSelection()
         return false;
     }
     const QString path = QFileDialog::getSaveFileName(
-        this, tr("Save Selection"), m_lastDir, tr("Selection files (*.pdn)"));
+        this, tr("Save Selection"), m_lastDir, tr("Selection files (*.pdq)"));
     if (path.isEmpty())
         return false;
     QString err;
-    if (!PdnFile::saveSelection(m_doc->selection(), path, &err)) {
+    if (!PdqFile::saveSelection(m_doc->selection(), path, &err)) {
         QMessageBox::warning(this, tr("Save Selection"), err);
         return false;
     }
@@ -1320,12 +1320,12 @@ bool MainWindow::loadSelection()
     if (!m_doc)
         return false;
     const QString path = QFileDialog::getOpenFileName(
-        this, tr("Load Selection"), m_lastDir, tr("Selection files (*.pdn)"));
+        this, tr("Load Selection"), m_lastDir, tr("Selection files (*.pdq)"));
     if (path.isEmpty())
         return false;
     Selection sel;
     QString err;
-    if (!PdnFile::loadSelection(path, &sel, &err)) {
+    if (!PdqFile::loadSelection(path, &sel, &err)) {
         QMessageBox::warning(this, tr("Load Selection"), err);
         return false;
     }
@@ -2627,7 +2627,7 @@ void MainWindow::dropEvent(QDropEvent* e)
         // Open all images in the folder.
         const QStringList files = QDir(path).entryList({ QStringLiteral("*.png"), QStringLiteral("*.jpg"),
                                                          QStringLiteral("*.jpeg"), QStringLiteral("*.bmp"),
-                                                         QStringLiteral("*.pdn"), QStringLiteral("*.tif") },
+                                                         QStringLiteral("*.pdq"), QStringLiteral("*.tif") },
                                                       QDir::Files);
         for (const QString& f : files) {
             MainWindow* w = new MainWindow;

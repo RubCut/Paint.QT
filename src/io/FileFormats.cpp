@@ -29,7 +29,7 @@ QVector<FileFormat> FileFormats::all()
             ff.multiFrame = multi;
             f.append(ff);
         };
-        add("Paint.NET Project", { "pdn" }, true, false, true, true, FileFormat::Kind::Project);
+        add("Paint.QT Project", { "pdq" }, true, false, true, true, FileFormat::Kind::Project);
         add("PNG - Portable Network Graphics", { "png" }, true, false, true, true);
         add("JPEG - Joint Photographic Experts Group", { "jpg", "jpeg", "jpe", "jfif" }, false, true,
             true, true);

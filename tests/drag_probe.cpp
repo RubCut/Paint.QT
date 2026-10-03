@@ -2,7 +2,7 @@
 // CanvasView and check that a drag paints a curved stroke rather than a single
 // straight chord from press to release.
 #include "core/Document.h"
-#include "io/PdnFile.h"
+#include "io/PdqFile.h"
 #include "ui/CanvasView.h"
 #include "ui/MainWindow.h"
 
@@ -148,23 +148,23 @@ int main(int argc, char** argv)
     }
     std::printf("undo/redo round trip: ok\n");
 
-    // ---- .pdn must survive a save and reopen unchanged ---------------------
+    // ---- .pdq must survive a save and reopen unchanged ---------------------
     {
-        const QString path = QStringLiteral("/tmp/pnq_roundtrip.pdn");
+        const QString path = QStringLiteral("/tmp/pnq_roundtrip.pdq");
         QString err;
-        if (!PdnFile::save(*doc, path, &err)) {
-            std::printf("pdn save failed: %s\n", qPrintable(err));
+        if (!PdqFile::save(*doc, path, &err)) {
+            std::printf("pdq save failed: %s\n", qPrintable(err));
             return 1;
         }
-        Document* back = PdnFile::load(path, &err);
+        Document* back = PdqFile::load(path, &err);
         if (!back) {
-            std::printf("pdn load failed: %s\n", qPrintable(err));
+            std::printf("pdq load failed: %s\n", qPrintable(err));
             return 1;
         }
         int diff = 0;
         if (back->width() != doc->width() || back->height() != doc->height()
             || back->layerCount() != doc->layerCount()) {
-            std::printf("pdn shape changed: %dx%d/%d -> %dx%d/%d\n", doc->width(), doc->height(),
+            std::printf("pdq shape changed: %dx%d/%d -> %dx%d/%d\n", doc->width(), doc->height(),
                         doc->layerCount(), back->width(), back->height(), back->layerCount());
             return 1;
         }
@@ -179,7 +179,7 @@ int main(int argc, char** argv)
                         ++diff;
             }
         }
-        std::printf("pdn round trip: %d differing pixels\n", diff);
+        std::printf("pdq round trip: %d differing pixels\n", diff);
         if (diff != 0)
             return 1;
         delete back;

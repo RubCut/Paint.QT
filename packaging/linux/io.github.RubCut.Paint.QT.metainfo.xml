@@ -30,7 +30,7 @@
       Paint.QT is a raster image editor for photos, drawings and graphics work. It
       is modelled on Paint.NET: the same tools, the same palette layout, and the same
       history where one stroke is one undo step. It is not Paint.NET and it does not
-      read Paint.NET's files: the .pdn extension is shared, the format is not.
+      read Paint.NET's files, which are a different format under the same extension.
     </p>
     <p>Among its tools:</p>
     <ul>
@@ -44,7 +44,8 @@
       <li>Layers with opacity, locking, merging and flattening</li>
       <li>A full undo history where every stroke is a separate step</li>
       <li>The clipboard wired to the system clipboard, so images move between applications</li>
-      <li>Reading and writing .pdn, so documents move between versions of this editor</li>
+      <li>Reading and writing .pdq, this editor's own project format, so documents move
+          between versions of this editor</li>
       <li>A light theme that follows the system, and a dark one</li>
     </ul>
   </description>
@@ -91,7 +92,7 @@
         also corrects a claim: Paint.NET's own files are a different format and
         were never read here.</p>
         <ul>
-          <li>The .pdn loader bounds what it will open: 30000 a side, 80 megapixels
+          <li>The .pdq loader bounds what it will open: 30000 a side, 80 megapixels
           in total, 256 layers, and the size a compressed buffer claims to expand
           to is checked before anything is allocated for it</li>
           <li>The image decoders check the dimensions in the file header before
