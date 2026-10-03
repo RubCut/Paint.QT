@@ -497,6 +497,12 @@ private:
         case RecClassWithMembersAndTypes: {
             ClassInfo ci = readClassInfo();
             readMemberTypes(&ci);
+            // readClassInfo filed the class before its member types were known, and
+            // the entry it filed is a copy. Putting the types back is not tidiness:
+            // a later record may refer to this class by its id and reuse the types,
+            // and with them missing every member of that record would be read as an
+            // object, including the two numbers holding the layer's width and height.
+            m_classes.insert(ci.id, ci);
             if (rec == RecClassWithMembersAndTypes)
                 (void)leI32();  // library id
             v = readMembers(&ci, ci.id, true);

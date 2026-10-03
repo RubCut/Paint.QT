@@ -8,11 +8,12 @@
 [![Release](https://img.shields.io/github/v/release/RubCut/Paint.QT?label=release)](https://github.com/RubCut/Paint.QT/releases/latest)
 [![Licence](https://img.shields.io/badge/licence-GPL--3.0--or--later-blue.svg)](LICENSE)
 
-Qt 6 · C++20 · GPL-3.0-or-later · Linux and the BSDs · `.pdq`
+Qt 6 · C++20 · GPL-3.0-or-later · Linux and the BSDs · `.pdq` in, `.pdn` and `.pdq` out
 
 The tool set and the palette layout are the ones people know from
 [Paint.NET](https://www.getpaint.net/), and so are two further things: it reads and
-writes the `.pdq` format, and its history treats one stroke as one undo step. Nothing
+writes the `.pdq` format, reads Paint.NET's `.pdn`, and its history treats one stroke as
+one undo step. Nothing
 here comes from Paint.NET's code.
 
 ## Screenshots
@@ -109,11 +110,17 @@ copy a selection here and paste it into anything that takes an image.
 **`.pdq` files save and reopen with every layer intact**, so a document moves between
 versions of Paint.QT in either direction.
 
-`.pdq` is this program's own project format, and it is JSON. Paint.NET has a different
-project format that is also spelled `.pdn`: a binary container that begins with the four
-bytes `PDN3`. The two are unrelated, and neither program reads the other's. A `.pdn`
-saved by Paint.NET is recognised and refused with an explanation rather than left to
-fail as a broken file. A document leaves Paint.QT as a `.pdq` or as a PNG.
+`.pdq` is this program's own project format, and it is what it writes.
+
+**Paint.NET's `.pdn` files are read**, with every layer, its name, visibility,
+background flag, opacity, blend mode and pixels. They are a different format underneath:
+a binary container that begins with the four bytes `PDN3`, followed by a .NET object
+graph and gzipped pixel blocks. Checked against the reference reader on ten files
+covering one, two, three and fourteen layers, all fourteen blend modes, and files from
+Paint.NET 3.510 and 4.21: every field matches and no pixel differs.
+
+Saving always writes `.pdq`. Paint.NET's format is read here, not written, so a document
+that arrived as a `.pdn` leaves as a `.pdq` or a PNG.
 
 **Freehand strokes are smoothed** along a Catmull-Rom spline through the mouse samples,
 so a fast drag comes out smooth instead of as visible chords.
