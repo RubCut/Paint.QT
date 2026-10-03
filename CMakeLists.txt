@@ -285,6 +285,15 @@ if(PNQ_BUILD_TESTS AND Qt6Test_FOUND)
   target_link_libraries(pnq_tests PRIVATE pnq_core Qt6::Test)
   add_test(NAME core_tests COMMAND pnq_tests)
 
+  # Reads Paint.NET project files from tests/data and checks them against reference
+  # images that this project does not own. Without this, the reader had no test at
+  # all and a claim about matching pixels could not be checked by anyone.
+  add_executable(pnq_pdn3 tests/test_pdn3.cpp)
+  target_link_libraries(pnq_pdn3 PRIVATE pnq_core Qt6::Test)
+  target_compile_definitions(pnq_pdn3 PRIVATE
+    PNQ_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/data")
+  add_test(NAME pdn3 COMMAND pnq_pdn3)
+
   # GUI smoke test: builds the real window, renders it and drives the tools.
   add_executable(pnq_smoke tests/smoke_test.cpp)
   target_link_libraries(pnq_smoke PRIVATE pnq_ui)

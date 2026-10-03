@@ -297,7 +297,7 @@ public:
             const quint32 dataSize = beU32();
             if (m_failed)
                 return false;
-            const QByteArray raw = take(int(dataSize));
+            const QByteArray raw = take(int(qint64(dataSize)));
             if (m_failed)
                 return false;
 
@@ -404,7 +404,9 @@ private:
 
     QByteArray take(int n)
     {
-        if (n < 0 || m_p + n > m_b.size()) {
+        // The sum is computed in 64 bits on purpose. In int, m_p + n wraps for a
+        // large n and the check passes, which is the one thing it exists to prevent.
+        if (n < 0 || qint64(m_p) + qint64(n) > qint64(m_b.size())) {
             fail(QObject::tr("it ends in the middle of a block of data"));
             return QByteArray();
         }
@@ -840,7 +842,7 @@ private:
         case PrimBoolean:
             if (many) {
                 v.kind = Value::Kind::Blob;
-                v.blob = take(count);
+                v.blob = take(int(qint64(count)));
                 return v;
             }
             v.kind = Value::Kind::Bool;
@@ -850,7 +852,7 @@ private:
         case PrimSByte:
             if (many) {
                 v.kind = Value::Kind::Blob;
-                v.blob = take(count);
+                v.blob = take(int(qint64(count)));
                 return v;
             }
             v.kind = Value::Kind::Int;
@@ -863,7 +865,7 @@ private:
         case PrimInt16:
             if (many) {
                 v.kind = Value::Kind::Blob;
-                v.blob = take(2 * count);
+                v.blob = take(int(qint64(count) * 2));
                 return v;
             }
             v.kind = Value::Kind::Int;
@@ -872,7 +874,7 @@ private:
         case PrimUInt16:
             if (many) {
                 v.kind = Value::Kind::Blob;
-                v.blob = take(2 * count);
+                v.blob = take(int(qint64(count) * 2));
                 return v;
             }
             v.kind = Value::Kind::Int;
@@ -881,7 +883,7 @@ private:
         case PrimInt32:
             if (many) {
                 v.kind = Value::Kind::Blob;
-                v.blob = take(4 * count);
+                v.blob = take(int(qint64(count) * 4));
                 return v;
             }
             v.kind = Value::Kind::Int;
@@ -890,7 +892,7 @@ private:
         case PrimUInt32:
             if (many) {
                 v.kind = Value::Kind::Blob;
-                v.blob = take(4 * count);
+                v.blob = take(int(qint64(count) * 4));
                 return v;
             }
             v.kind = Value::Kind::Int;
@@ -899,7 +901,7 @@ private:
         case PrimInt64:
             if (many) {
                 v.kind = Value::Kind::Blob;
-                v.blob = take(8 * count);
+                v.blob = take(int(qint64(count) * 8));
                 return v;
             }
             v.kind = Value::Kind::Int;
@@ -908,7 +910,7 @@ private:
         case PrimUInt64:
             if (many) {
                 v.kind = Value::Kind::Blob;
-                v.blob = take(8 * count);
+                v.blob = take(int(qint64(count) * 8));
                 return v;
             }
             v.kind = Value::Kind::Int;
@@ -1233,6 +1235,27 @@ Document* Pdn3Reader::loadFromData(const QByteArray& data, QString* error)
             return nullptr;
         }
         declared[i] = len;
+    }
+
+    // The limit that matters is on the sum. The per-layer limits leave 256 layers of
+    // 80 megapixels between them, which is 80 gigabytes of decoded pixels, and a file
+    // holding that is small: runs of zeros in a gzip block shrink by about a thousand
+    // to one. 200 megapixels in total is 800 MB of surface, far past anything a person
+    // draws.
+    {
+        qint64 total = 0;
+        for (int i = 0; i < layerObjs.size(); ++i)
+            total += declared.at(i) / 4;
+        if (total > MaxTotalPixels) {
+            if (error) {
+                *error = QObject::tr(
+                             "This Paint.NET file has %1 megapixels in all, and this "
+                             "program will open up to %2")
+                             .arg(total / 1000000)
+                             .arg(MaxTotalPixels / 1000000);
+            }
+            return nullptr;
+        }
     }
 
     Document* doc = new Document(w, h);
