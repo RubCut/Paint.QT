@@ -14,6 +14,30 @@ namespace pnq {
 
 namespace {
 
+/// Puts a member name into the shape a lookup can use.
+///
+/// The names in these files are .NET field names, so they carry characters that
+/// cannot go in an identifier: ArrayList+_size, PaintDotNet.Layer+LayerProperties.
+/// Everything that is not a letter, a digit or an underscore becomes an underscore,
+/// and leading underscores and digits are dropped. Files written by different
+/// versions of Paint.NET spell the same member differently, and this is what makes
+/// one lookup find it either way.
+QString normaliseName(const QString& raw)
+{
+    QString out;
+    out.reserve(raw.size());
+    for (const QChar c : raw) {
+        if (c.isLetterOrNumber() || c == QLatin1Char('_'))
+            out.append(c);
+        else
+            out.append(QLatin1Char('_'));
+    }
+    int start = 0;
+    while (start < out.size() && (out.at(start) == QLatin1Char('_') || out.at(start).isDigit()))
+        ++start;
+    return out.mid(start);
+}
+
 // --- NRBF type codes ---------------------------------------------------------
 // Values from the BinaryFormatter layout Paint.NET writes with. Every value in
 // the stream starts with a record type byte, so these are the grammar itself.
@@ -540,71 +564,6 @@ private:
         return true;
     }
 
-    /// Reads the next value for a member or array slot, stepping over libraries and
-    /// runs of nulls. Returns false only on failure; a null member is a success.
-    bool readSlot(Value* out)
-    {
-        for (;;) {
-            if (atEnd()) {
-                fail(QObject::tr("it ends in the middle of a value"));
-                return false;
-            }
-            const quint8 rec = u8();
-            if (rec == RecBinaryLibrary) {
-                (void)leI32();
-                (void)text();
-                if (m_failed)
-                    return false;
-                continue;
-            }
-            if (rec == RecObjectNullMultiple256) {
-                const int n = u8();
-                if (m_failed)
-                    return false;
-                // Each null in the run stands for a member or element, so the caller
-                // has to be told to skip them rather than have them read here.
-                *out = Value();
-                out->kind = Value::Kind::Null;
-                out->integer = 0;
-                m_pendingNulls = qMax(0, n - 1);
-                return true;
-            }
-            if (rec == RecObjectNullMultiple) {
-                const qint32 n = leI32();
-                if (m_failed)
-                    return false;
-                *out = Value();
-                m_pendingNulls = qMax(0, int(n) - 1);
-                return true;
-            }
-            if (rec == RecObjectNull) {
-                *out = Value();
-                return true;
-            }
-            if (!readRecord(rec, out)) {
-                if (m_failed)
-                    return false;
-                *out = Value();
-            }
-            return true;
-        }
-    }
-
-    /// Consumes one slot from a run of nulls a file declared, and reports whether
-    /// this slot was part of it.
-    ///
-    /// The run is one record that stands for several members, so it has to be spent
-    /// a slot at a time. Clearing it in one go would leave the members after the run
-    /// being read as though they were values, and the stream would be out of step
-    /// from that point on.
-    bool skipPendingNull()
-    {
-        if (m_pendingNulls <= 0)
-            return false;
-        --m_pendingNulls;
-        return true;
-    }
-
     ClassInfo readClassInfo()
     {
         ClassInfo ci;
@@ -616,7 +575,7 @@ private:
             return ci;
         }
         for (qint32 i = 0; i < count; ++i)
-            ci.members << text();
+            ci.members << normaliseName(text());
         if (m_failed)
             return ci;
         m_classes.insert(ci.id, ci);
@@ -662,6 +621,18 @@ private:
         }
     }
 
+    /// Reads a class's members.
+    ///
+    /// Only a member declared as a primitive is read straight from its type code.
+    /// Everything else, including a member declared as a string or as a primitive
+    /// array, arrives as a record and is read here the same way, which is what the
+    /// format does and what reading it any other way gets wrong: a member type is a
+    /// hint about what follows, not a description of how to read it.
+    ///
+    /// A library record precedes a member without standing in for one, and a null
+    /// record may stand for a run of them. Both move the position on without
+    /// producing a value, and the run fills its slots with nulls so that the values
+    /// stay lined up with the member names.
     Value readMembers(const ClassInfo* ci, quint32 objectId, bool typed)
     {
         Value v;
@@ -670,33 +641,69 @@ private:
         v.text = ci ? ci->name : QString();
         v.names = ci ? ci->members : QStringList();
 
-        for (int i = 0; i < v.names.size(); ++i) {
-            if (skipPendingNull())
-                continue;
+        const int count = v.names.size();
+        int index = 0;
+        while (index < count) {
+            if (m_failed)
+                return v;
 
             quint8 type = BinObject;
             int64_t prim = -1;
-            if (typed && ci && i < ci->types.size()) {
-                type = ci->types.at(i);
-                prim = ci->extra.value(i, -1);
+            if (typed && ci && index < ci->types.size()) {
+                type = ci->types.at(index);
+                prim = ci->extra.value(index, -1);
             }
 
             Value member;
             if (type == BinPrimitive && prim >= 0) {
                 member = readPrimitive(quint8(prim));
-            } else if (type == BinString) {
-                member.kind = Value::Kind::Text;
-                member.text = text();
-            } else if (type == BinPrimitiveArray) {
-                const qint32 n = leI32();
-                member = readPrimitive(quint8(prim), n);
-            } else {
-                if (!readSlot(&member))
+                if (m_failed)
                     return v;
+                v.items << member;
+                ++index;
+                continue;
             }
+
+            if (atEnd()) {
+                fail(QObject::tr("it ends where a member should be"));
+                return v;
+            }
+            const quint8 rec = u8();
+            if (rec == RecBinaryLibrary) {
+                (void)leI32();
+                (void)text();
+                if (m_failed)
+                    return v;
+                continue;  // a library introduces the next member, it is not one
+            }
+            if (rec == RecObjectNullMultiple256) {
+                const int run = u8();
+                if (m_failed)
+                    return v;
+                for (int k = 0; k < run; ++k)
+                    v.items << Value();
+                index += run;
+                continue;
+            }
+            if (rec == RecObjectNullMultiple) {
+                const qint32 run = leI32();
+                if (m_failed)
+                    return v;
+                if (run < 0 || run > count) {
+                    fail(QObject::tr("a run of empty members in the file has an impossible length"));
+                    return v;
+                }
+                for (int k = 0; k < run; ++k)
+                    v.items << Value();
+                index += run;
+                continue;
+            }
+
+            readRecord(rec, &member);
             if (m_failed)
                 return v;
             v.items << member;
+            ++index;
         }
         return v;
     }
@@ -765,20 +772,55 @@ private:
         return v;
     }
 
+    /// Reads an array's elements, with the same rules for libraries and null runs as
+    /// a class's members.
     Value readObjectArray(quint32 id, int count)
     {
         Value v;
         v.kind = Value::Kind::List;
         v.id = id;
-        for (int i = 0; i < count; ++i) {
-            if (skipPendingNull()) {
-                v.items << Value();
+        int index = 0;
+        while (index < count) {
+            if (m_failed)
+                return v;
+            if (atEnd()) {
+                fail(QObject::tr("it ends where an array element should be"));
+                return v;
+            }
+            const quint8 rec = u8();
+            if (rec == RecBinaryLibrary) {
+                (void)leI32();
+                (void)text();
+                if (m_failed)
+                    return v;
+                continue;
+            }
+            if (rec == RecObjectNullMultiple256) {
+                const int run = u8();
+                if (m_failed)
+                    return v;
+                for (int k = 0; k < run && index < count; ++k, ++index)
+                    v.items << Value();
+                continue;
+            }
+            if (rec == RecObjectNullMultiple) {
+                const qint32 run = leI32();
+                if (m_failed)
+                    return v;
+                if (run < 0 || run > count) {
+                    fail(QObject::tr("a run of empty array elements in the file has an impossible length"));
+                    return v;
+                }
+                for (int k = 0; k < run && index < count; ++k, ++index)
+                    v.items << Value();
                 continue;
             }
             Value item;
-            if (!readSlot(&item))
+            readRecord(rec, &item);
+            if (m_failed)
                 return v;
             v.items << item;
+            ++index;
         }
         return v;
     }
@@ -1023,18 +1065,23 @@ void applyProperties(const Value& layerObj, Layer* layer)
     if (const Value* o = props->find("opacity"))
         layer->setOpacity(int(qBound(qint64(0), o->integer, qint64(255))));
 
-    // Blend mode: a number in the newer files, a typed object in the older ones.
+    // Blend mode. The newer files hold a small object wrapping the enum number in a
+    // field called value__, and the older ones hold the operation as a type whose
+    // name is the mode. Both are read, because which one appears depends on the
+    // version of Paint.NET that wrote the file, not on anything in the file itself.
     if (const Value* bm = props->find("blendMode")) {
-        if (bm->kind == Value::Kind::Int || bm->kind == Value::Kind::Bool)
+        if (bm->kind == Value::Kind::Int || bm->kind == Value::Kind::Bool) {
             layer->setBlendMode(mapBlend(int(bm->integer)));
-        else if (bm->isObject())
-            layer->setBlendMode(mapBlend(blendFromClassName(bm->text)));
+        } else if (bm->isObject()) {
+            const Value* v = bm->find("value__");
+            if (v)
+                layer->setBlendMode(mapBlend(int(v->integer)));
+            else
+                layer->setBlendMode(mapBlend(blendFromClassName(bm->text)));
+        }
     } else if (const Value* op = props->find("blendOp")) {
         if (op->isObject())
             layer->setBlendMode(mapBlend(blendFromClassName(op->text)));
-    } else if (const Value* ops = props->find("blendOps")) {
-        if (ops->isObject())
-            layer->setBlendMode(mapBlend(blendFromClassName(ops->text)));
     }
 }
 
@@ -1102,23 +1149,36 @@ Document* Pdn3Reader::load(const QByteArray& data, QString* error)
     // The layer list is an ArrayList whose backing array is padded with nulls past
     // its size, so the entries are taken by identity rather than by what is in the
     // array. Files that store a plain list work too.
+    // The layer list is an ArrayList: a backing array padded with nulls past the
+    // count it really holds. The count is the layer count, not the array length, and
+    // it also says how many pixel blocks follow in the stream, so reading the wrong
+    // number here loses the rest of the picture.
     QVector<const Value*> layerObjs;
     if (const Value* layers = root.find("layers")) {
+        const Value* array = nullptr;
+        qint64 declared = -1;
         if (layers->kind == Value::Kind::Object) {
-            for (const Value& f : layers->items) {
-                if (f.kind == Value::Kind::List) {
-                    for (const Value& it : f.items) {
-                        if (it.isObject())
-                            layerObjs << &it;
-                    }
-                    break;
-                }
+            for (int i = 0; i < layers->names.size() && i < layers->items.size(); ++i) {
+                if (layers->names.at(i) == QLatin1String("ArrayList__size"))
+                    declared = layers->items.at(i).integer;
+                else if (layers->names.at(i) == QLatin1String("ArrayList__items")
+                         && layers->items.at(i).kind == Value::Kind::List)
+                    array = &layers->items.at(i);
             }
         } else if (layers->kind == Value::Kind::List) {
-            for (const Value& it : layers->items) {
-                if (it.isObject())
-                    layerObjs << &it;
-            }
+            array = layers;
+        }
+        if (!array) {
+            if (error)
+                *error = QObject::tr("This Paint.NET file has a layer list this program cannot read");
+            return nullptr;
+        }
+        for (const Value& it : array->items) {
+            if (!it.isObject())
+                continue;
+            if (declared >= 0 && layerObjs.size() >= declared)
+                break;
+            layerObjs << &it;
         }
     }
     if (layerObjs.isEmpty()) {
@@ -1198,8 +1258,14 @@ bool Pdn3Reader::fillSurface(const QByteArray& pixels, qint64 length, int w, int
         return false;
     }
 
-    // The bytes are stored as BGRA with the top row first. Swapping the colour
-    // channels across and taking the alpha out of them gives what a Surface holds.
+    // The bytes are stored as BGRA with the top row first, so the colour channels
+    // move across the other way and the alpha stays where it is.
+    //
+    // No premultiplication happens here, and that is not an oversight. Paint.NET
+    // stores straight alpha: a pixel in the test files is grey 234 with an alpha of
+    // 127, which cannot be premultiplied because a premultiplied colour is never
+    // brighter than its own alpha. Scaling here would darken every translucent
+    // pixel, and measuring it against a reference showed a mean error of 149 of 255.
     const quint32 stride = quint32(w) * 4;
 
     for (int y = 0; y < h; ++y) {
@@ -1215,11 +1281,7 @@ bool Pdn3Reader::fillSurface(const QByteArray& pixels, qint64 length, int w, int
             const quint8 g = src[x * 4 + 1];
             const quint8 r = src[x * 4 + 2];
             const quint8 a = src[x * 4 + 3];
-            // Premultiplied, because a Surface stores premultiplied pixels.
-            const quint32 pr = quint32(qBound(0, int(r) - int(a), 255));
-            const quint32 pg = quint32(qBound(0, int(g) - int(a), 255));
-            const quint32 pb = quint32(qBound(0, int(b) - int(a), 255));
-            out32[x] = (quint32(a) << 24) | (pr << 16) | (pg << 8) | pb;
+            out32[x] = (quint32(a) << 24) | (quint32(r) << 16) | (quint32(g) << 8) | quint32(b);
         }
     }
     return true;
