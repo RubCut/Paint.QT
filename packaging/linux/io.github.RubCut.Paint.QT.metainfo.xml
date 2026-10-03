@@ -83,6 +83,29 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="1.0.2" date="2026-10-03">
+      <description>
+        <p>A review of the code found four real problems, all now fixed. The
+        project file loader would allocate whatever size a file asked for, and
+        the installer turned off the signature check it documents. This release
+        also corrects a claim: Paint.NET's own files are a different format and
+        were never read here.</p>
+        <ul>
+          <li>The .pdn loader bounds what it will open: 30000 a side, 80 megapixels
+          in total, 256 layers, and the size a compressed buffer claims to expand
+          to is checked before anything is allocated for it</li>
+          <li>The image decoders check the dimensions in the file header before
+          reading, and the frame count is capped. A valid 8000x8000 PNG is 202 kB
+          on disk and takes 273 MB to decode; the file chose how many of those</li>
+          <li>install.sh verifies the Flatpak repository signature and refuses to
+          continue if the key's fingerprint is not the expected one</li>
+          <li>The AppImage build pins checksums for the three tools it downloads
+          from moving branches</li>
+          <li>The README, the description and the release notes no longer say that
+          documents move between Paint.NET and Paint.QT. They do not</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.0.1" date="2026-10-02">
       <description>
         <p>The metadata is now correct: the metainfo names an icon, without which

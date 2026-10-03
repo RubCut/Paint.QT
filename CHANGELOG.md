@@ -4,6 +4,63 @@ Every release is a GitHub release at
 [RubCut/Paint.QT/releases](https://github.com/RubCut/Paint.QT/releases). This file is
 the same list in one place.
 
+## 1.0.2 — 2026-10-03
+
+A review of the code found four real problems. All four are fixed here, and one
+false claim in the documentation is withdrawn.
+
+**The `.pdn` claim was wrong.** The README, the AppStream description and the
+release notes said a document moves between Paint.NET and Paint.QT in either
+direction. It does not. Measured on a file this program writes: it begins with
+`{` and is JSON. A Paint.NET file begins with the four bytes `PDN3`. There is no
+`PDN3` anywhere in the tree. A document now has to leave Paint.QT as a PNG, or as
+a `.pdn` that only Paint.QT will reopen. Reading Paint.NET's format means
+implementing its container, its XML metadata and its NRBF serialisation; that
+work has not been done and is not claimed to be.
+
+**The loader accepted hostile files.** Sizes up to 200000 by 200000 passed the
+old check — 160,000,000,000 bytes for one layer — and the multiplication was
+done in `int`, where it wraps to 1,086,210,048, so the comparison meant to
+refuse it passed instead. `qUncompress` trusted the size in the stream header.
+The layer count was not limited. In `loadSelection` the mask dimensions went
+straight to `QImage` unchecked.
+
+Sizes are now computed as `qint64` and bounded at 30000 a side and 80
+megapixels in total, layers are capped at 256, and the declared uncompressed
+length is read off the front of the buffer and checked against the canvas before
+anything is allocated. Measured with a probe outside the tree:
+
+- 200000x200000 canvas — refused, "Invalid image dimensions"
+- layer of the wrong size — refused, "The layer does not match the canvas size"
+- 4000 layers — refused, "This file has more layers than this program will open"
+- selection 200000x200000 — refused, "Invalid image dimensions"
+- a file of our own — loaded, 800x600, 1 layer
+
+That last line is the one that matters. A loader that refuses everything is not
+a fix.
+
+**The image decoders are bounded too.** Qt's decoders do have a ceiling, so the
+obvious bomb does not work: a truncated PNG claiming 60000x60000 is refused by
+Qt itself with the process peaking at 22 MB. But a file that is not truncated is
+a different matter. A valid 8000x8000 PNG is 202 kB on disk and decodes to
+256 MB, taking the process from 21 MB to 273 MB, and Qt accepts it. That ceiling
+is per image, and `imageCount()` is a number read out of the file, so the limit
+on memory was the decoder's ceiling multiplied by a count the file chose. Each
+canvas is now checked against the header before it is read, and the frame count
+is capped. An 8000x8000 image and a 64x64 one both still open.
+
+**`install.sh` disabled the signature it documents.** The Flatpak path added the
+remote with `--no-gpg-verify`. It now fetches the key, compares its fingerprint
+against `15CC07DFA2F7AC0DA659E4B47C5A64187D334294`, refuses to continue on a
+mismatch, and passes the key with `--gpg-import`. Verified both ways: the real
+key installs and the app answers `Paint.QT 1.0.2`; a generated throwaway key is
+rejected with both fingerprints printed.
+
+**The AppImage toolchain is pinned.** `linuxdeploy`, `linuxdeploy-plugin-qt` and
+`appimagetool` were fetched from branches named `continuous`, whose contents can
+change without the URL changing. Their checksums are now pinned in the job, and a
+mismatch fails the step instead of quietly changing the output.
+
 ## 1.0.1 — 2026-10-02
 
 The packaging metadata is corrected. In 1.0.0 some of it pointed at things that do
