@@ -1,0 +1,9 @@
+[Flatpak Ref]
+Name=io.github.RubCut.Paint.QT
+Branch=stable
+Title=Paint.QT
+IsRuntime=false
+Url=https://rubcut.github.io/Paint.QT/repo/
+SuggestRemoteName=paintqt
+GPGKey=mDMEar7lbBYJKwYBBAHaRw8BAQdAvVGU5QiStbLAiC1AYV1bh26AMVekv1M+IaCGDZsuXou0QlBhaW50LlFUIEZsYXRwYWsgcmVwb3NpdG9yeSBzaWduaW5nIGtleSA8ZmxhdHBha0BwYWludC1xdC5pbnZhbGlkPoiQBBMWCgA4FiEEFcwH36L3rA2mWeS0fFpkGH0zQpQFAmq+5WwCGwMFCwkIBwIGFQoJCAsCBBYCAwECHgECF4AACgkQfFpkGH0zQpQOnQD9Fg/bA8bx01lKZQwh4wUmjc4vSXEjR+rTu9Ed1k+cIxAA/2lu8pHGYrVSC7lKssXg0u2389WK5FV1Q+VRKnEPuIcP
+RuntimeRepo=https://rubcut.github.io/Paint.QT/repo/paint-qt.flatpakrepo
