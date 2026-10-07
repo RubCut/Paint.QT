@@ -112,6 +112,47 @@ private slots:
         QCOMPARE(int(getB(out)), 50);
     }
 
+    void blend_paint_net_modes()
+    {
+        // Edge cases straight from Paint.NET's own blend sources (OpenPDN): the
+        // overlay decides, not the backdrop.
+        QCOMPARE(int(getR(composePixel(rgbPixel(0, 0, 0), rgbPixel(255, 255, 255),
+                                       BlendMode::ColorDodge))),
+                 255);
+        QCOMPARE(int(getR(composePixel(rgbPixel(100, 100, 100), rgbPixel(0, 0, 0),
+                                       BlendMode::ColorBurn))),
+                 0);
+        // Negation and XOR are exact integer operations.
+        QCOMPARE(int(getR(composePixel(rgbPixel(200, 0, 0), rgbPixel(50, 0, 0),
+                                       BlendMode::Negation))),
+                 250); // 255 - |255 - 200 - 50|
+        QCOMPARE(int(getR(composePixel(rgbPixel(0, 0, 0), rgbPixel(0, 0, 0),
+                                       BlendMode::Negation))),
+                 0);
+        QCOMPARE(int(getR(composePixel(rgbPixel(170, 0, 0), rgbPixel(85, 0, 0),
+                                       BlendMode::Xor))),
+                 255);
+        // Reflect and Glow divide, so integer arithmetic may sit one off the float
+        // reference; what matters is the formula, not the rounding.
+        // Reflect(100, 100) = 100*100/155 = 64.5.
+        QVERIFY(qAbs(int(getR(composePixel(rgbPixel(100, 0, 0), rgbPixel(100, 0, 0),
+                                           BlendMode::Reflect)))
+                       - 64)
+                 <= 1);
+        // Glow(100, 100) is the same with the sides swapped.
+        QVERIFY(qAbs(int(getR(composePixel(rgbPixel(100, 0, 0), rgbPixel(100, 0, 0),
+                                           BlendMode::Glow)))
+                       - 64)
+                 <= 1);
+        // White overlay reflects to white, white backdrop glows to white.
+        QCOMPARE(int(getR(composePixel(rgbPixel(10, 0, 0), rgbPixel(255, 255, 255),
+                                       BlendMode::Reflect))),
+                 255);
+        QCOMPARE(int(getR(composePixel(rgbPixel(255, 255, 255), rgbPixel(10, 0, 0),
+                                       BlendMode::Glow))),
+                 255);
+    }
+
     void blend_luminosity_keeps_perceived_luminance()
     {
         const pixel_t dst = rgbPixel(128, 128, 128);

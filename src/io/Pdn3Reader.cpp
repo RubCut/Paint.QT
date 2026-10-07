@@ -1017,15 +1017,15 @@ BlendMode mapBlend(int paintNetMode)
     case 2: return BlendMode::LinearDodge;   // Additive
     case 3: return BlendMode::ColorBurn;
     case 4: return BlendMode::ColorDodge;
-    case 5: return BlendMode::HardLight;      // Reflect has no exact counterpart
-    case 6: return BlendMode::LinearLight;    // Glow likewise
+    case 5: return BlendMode::Reflect;
+    case 6: return BlendMode::Glow;
     case 7: return BlendMode::Overlay;
     case 8: return BlendMode::Difference;
-    case 9: return BlendMode::Exclusion;      // Negation
+    case 9: return BlendMode::Negation;
     case 10: return BlendMode::Lighten;
     case 11: return BlendMode::Darken;
     case 12: return BlendMode::Screen;
-    case 13: return BlendMode::HardMix;       // XOR has no exact counterpart
+    case 13: return BlendMode::Xor;
     default: return BlendMode::Normal;
     }
 }
@@ -1301,14 +1301,12 @@ bool Pdn3Reader::fillSurface(const QByteArray& pixels, qint64 length, int w, int
         return false;
     }
 
-    // The bytes are stored as BGRA with the top row first, so the colour channels
-    // move across the other way and the alpha stays where it is.
-    //
-    // No premultiplication happens here, and that is not an oversight. Paint.NET
-    // stores straight alpha: a pixel in the test files is grey 234 with an alpha of
-    // 127, which cannot be premultiplied because a premultiplied colour is never
-    // brighter than its own alpha. Scaling here would darken every translucent
-    // pixel, and measuring it against a reference showed a mean error of 149 of 255.
+    // Paint.NET stores straight alpha and a Surface holds premultiplied pixels, so
+    // the conversion happens here, once, on the way in. The composer reads channels
+    // through getR/getG/getB, which divide the stored value back out, so it must be
+    // handed genuinely premultiplied data: storing these bytes as they are leaves
+    // pixels whose colour is brighter than their own alpha, which the composer then
+    // divides a second time. Measured over the test files that was 1 564 705 of them.
     const quint32 stride = quint32(w) * 4;
 
     for (int y = 0; y < h; ++y) {
@@ -1324,7 +1322,10 @@ bool Pdn3Reader::fillSurface(const QByteArray& pixels, qint64 length, int w, int
             const quint8 g = src[x * 4 + 1];
             const quint8 r = src[x * 4 + 2];
             const quint8 a = src[x * 4 + 3];
-            out32[x] = (quint32(a) << 24) | (quint32(r) << 16) | (quint32(g) << 8) | quint32(b);
+            const quint32 pr = quint32((int(r) * int(a) + 127) / 255);
+            const quint32 pg = quint32((int(g) * int(a) + 127) / 255);
+            const quint32 pb = quint32((int(b) * int(a) + 127) / 255);
+            out32[x] = (quint32(a) << 24) | (pr << 16) | (pg << 8) | pb;
         }
     }
     return true;

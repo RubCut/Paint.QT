@@ -135,11 +135,15 @@ private slots:
         QCOMPARE(doc->layerAt(2)->blendMode(), BlendMode::LinearDodge);
         QCOMPARE(doc->layerAt(3)->blendMode(), BlendMode::ColorBurn);
         QCOMPARE(doc->layerAt(4)->blendMode(), BlendMode::ColorDodge);
+        QCOMPARE(doc->layerAt(5)->blendMode(), BlendMode::Reflect);
+        QCOMPARE(doc->layerAt(6)->blendMode(), BlendMode::Glow);
         QCOMPARE(doc->layerAt(7)->blendMode(), BlendMode::Overlay);
         QCOMPARE(doc->layerAt(8)->blendMode(), BlendMode::Difference);
+        QCOMPARE(doc->layerAt(9)->blendMode(), BlendMode::Negation);
         QCOMPARE(doc->layerAt(10)->blendMode(), BlendMode::Lighten);
         QCOMPARE(doc->layerAt(11)->blendMode(), BlendMode::Darken);
         QCOMPARE(doc->layerAt(12)->blendMode(), BlendMode::Screen);
+        QCOMPARE(doc->layerAt(13)->blendMode(), BlendMode::Xor);
 
         // No two layers may end up sharing a mode, whatever the mapping is: a file
         // that names fourteen different operations must not come back with fewer.
@@ -203,14 +207,10 @@ private slots:
         }
         // The sample really does contain translucent pixels, so this is not vacuous.
         QVERIFY(translucent > 0);
-        // Known defect, deliberately not asserted as fixed. Paint.NET stores straight
-        // alpha and a Surface declares premultiplied, and the two are not reconciled
-        // yet, so translucent pixels arrive with a colour brighter than their alpha.
-        // The count is printed rather than pinned, so a change in either direction is
-        // visible in the test log instead of quietly moving a threshold.
-        if (invalid > 0)
-            qInfo("known defect: %lld of %lld translucent pixels are not premultiplied",
-                  invalid, translucent);
+        // Paint.NET stores straight alpha and a Surface holds premultiplied pixels, so
+        // the reader converts once on the way in. These must be genuinely premultiplied:
+        // anything brighter than its own alpha gets divided a second time downstream.
+        QCOMPARE(invalid, 0L);
 
         delete doc;
     }

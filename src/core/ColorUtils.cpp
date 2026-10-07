@@ -179,7 +179,8 @@ quint8 blendChannel(BlendMode mode, int cb, int cs, quint8 cbA, quint8 csA)
     case BlendMode::Darken: return quint8(std::min(cb, cs));
     case BlendMode::Lighten: return quint8(std::max(cb, cs));
     case BlendMode::ColorDodge:
-        if (cb == 0) return 0;
+        // Paint.NET checks only the overlay: 255 dodges to 255 even over black.
+        // An early return for a black backdrop here hid whole channels.
         if (cs == 255) return 255;
         return quint8(std::min(255, cb * 255 / (255 - cs)));
     case BlendMode::ColorBurn:
@@ -210,6 +211,22 @@ quint8 blendChannel(BlendMode mode, int cb, int cs, quint8 cbA, quint8 csA)
     }
     case BlendMode::Difference: return quint8(std::abs(cb - cs));
     case BlendMode::Exclusion: return quint8(clamp255(cb + cs - 2 * cb * cs / 255));
+    case BlendMode::Negation: return quint8(255 - std::abs(255 - cb - cs));
+    case BlendMode::Xor: return quint8(cb ^ cs);
+    case BlendMode::Reflect: {
+        // Paint.NET: A*A/(1-B), B == 1 gives 1.
+        if (cs == 255)
+            return 255;
+        const int den = 255 - cs;
+        return quint8(std::min(255, (cb * cb + den / 2) / den));
+    }
+    case BlendMode::Glow: {
+        // Paint.NET: B*B/(1-A), A == 1 gives 1.
+        if (cb == 255)
+            return 255;
+        const int den = 255 - cb;
+        return quint8(std::min(255, (cs * cs + den / 2) / den));
+    }
     case BlendMode::Subtract: return quint8(std::max(0, cb - cs));
     case BlendMode::Divide: return cs == 0 ? 255 : quint8(clamp255(cb * 255.0 / cs));
     default: return quint8(qBound(0, cb, 255));

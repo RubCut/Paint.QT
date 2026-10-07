@@ -35,6 +35,10 @@ enum class BlendMode {
     Saturation,
     Color,
     Luminosity,
+    Reflect,
+    Glow,
+    Negation,
+    Xor,
     Count
 };
 

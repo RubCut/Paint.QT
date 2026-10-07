@@ -21,7 +21,8 @@ inline quint8 unpmulCh(quint8 c, quint8 a)
         return 0;
     if (a == 255)
         return c;
-    return quint8((int(c) * 255 + int(a) / 2) / int(a));
+    const int v = (int(c) * 255 + int(a) / 2) / int(a);
+    return quint8(v > 255 ? 255 : v);
 }
 inline quint8 getR(pixel_t p) { return unpmulCh(quint8(p >> 16), quint8(p >> 24)); }
 inline quint8 getG(pixel_t p) { return unpmulCh(quint8(p >> 8), quint8(p >> 24)); }

@@ -35,6 +35,10 @@ const Entry kTable[] = {
     { "Saturation", "saturation" },
     { "Color", "color" },
     { "Luminosity", "luminosity" },
+    { "Reflect", "reflect" },
+    { "Glow", "glow" },
+    { "Negation", "negation" },
+    { "XOR", "xor" },
 };
 static_assert(sizeof(kTable) / sizeof(kTable[0]) == static_cast<size_t>(BlendMode::Count),
               "blend mode table out of sync");
